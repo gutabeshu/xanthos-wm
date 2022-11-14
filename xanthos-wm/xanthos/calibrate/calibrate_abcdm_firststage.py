@@ -84,17 +84,17 @@ class Calibrate_runoff:
         
 
     #@staticmethod
-    def objectivefunction(self, simulation, evaluation, method_objfun = 'rrmse'):
+    def objectivefunction(self, simulation, evaluation):
         """Calculates Model Performance.
         Objective function to be minimized (if sceua /NSGAII is used) and maximized (all others)
         """
         # sceua requires minimization which will result in a negative KGE
         if (self.calib_algorithm == 'sceua') | (self.calib_algorithm == 'NSGAII'):
-            multiplier = 1
-        else:
             multiplier = -1
+        else:
+            multiplier = 1
 		
-        obj1 = spotpy.objectivefunctions.rrmse(evaluation, simulation) * multiplier
+        obj1 = spotpy.objectivefunctions.kge(evaluation, simulation) * multiplier
 
         return obj1
 
@@ -145,8 +145,12 @@ def calibrate_basin(pet,
     # parallel ='seq' # Runs everthing in sequential mode
     np.random.seed(2000) # Makes the results reproduceable
     skip_duplicates = True
+    name_ext = calib_algorithm + '_Runoff_ObjF_annualKGE'
+    if calibration_type == -1:
+        name_ext = '_Runoff_ObjF_monthlyKGE'
+    ##    
     if calib_algorithm == 'sceua':	          
-        sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,dbname= dbname_dir + calib_algorithm + '_Runoff',
+        sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,dbname= dbname_dir +  name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
                                     #parallel='mpi' )                                          
         sampler.sample(repetitions)#, ngs=50, kstop=500, peps=1e-7, pcento=1e-7)
@@ -154,44 +158,45 @@ def calibrate_basin(pet,
     elif calib_algorithm == 'NSGAII':	    
         n_pop = 10
         repetitions_nsgaii = int(repetitions / n_pop)         
-        sampler = spotpy.algorithms.NSGAII(runoff_model_spot_setup, dbname=dbname_dir + calib_algorithm + '_Runoff',
+        sampler = spotpy.algorithms.NSGAII(runoff_model_spot_setup, dbname=dbname_dir + name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
                                     #parallel='mpi' )                                                
         sampler.sample(repetitions_nsgaii, n_obj= 1, n_pop = n_pop)
 
     elif calib_algorithm == 'mcmc':	          
-        sampler = spotpy.algorithms.mcmc(runoff_model_spot_setup,dbname=dbname_dir + calib_algorithm + '_Runoff',
+        sampler = spotpy.algorithms.mcmc(runoff_model_spot_setup,dbname=dbname_dir + name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
                                     #parallel='mpi' )                                          
         sampler.sample(repetitions)
 
 
     elif calib_algorithm == 'demcz':	          
-        sampler = spotpy.algorithms.demcz(runoff_model_spot_setup,dbname_dir + calib_algorithm + '_Runoff',
+        sampler = spotpy.algorithms.demcz(runoff_model_spot_setup,dbname_dir + name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
                                     #parallel='mpi' )                                            
         sampler.sample(repetitions)
 
     elif calib_algorithm == 'dream':	          
-        sampler = spotpy.algorithms.dream(runoff_model_spot_setup,dbname=dbname_dir + calib_algorithm + '_Runoff',
+        sampler = spotpy.algorithms.dream(runoff_model_spot_setup,dbname=dbname_dir + name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
                                     #parallel='mpi' )                                            
         sampler.sample(repetitions)
     elif calib_algorithm == 'abc':	          
-        sampler = spotpy.algorithms.abc(runoff_model_spot_setup,dbname=dbname_dir + calib_algorithm + '_Runoff',
+        sampler = spotpy.algorithms.abc(runoff_model_spot_setup,dbname=dbname_dir + name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
                                     #parallel='mpi' )                                            
         sampler.sample(repetitions)
 
     # re-read the output file
-    results = pd.read_csv(dbname_dir + calib_algorithm + '_Runoff' + '.csv').dropna(axis=0)
+    results = pd.read_csv(dbname_dir + name_ext + '.csv').dropna(axis=0)
     # sort parameter sets based on the objective function
     results_sorted = results.sort_values(by = 'like1', ascending=True).reset_index(drop=True)
+    results_sorted_unique = results_sorted[['para', 'parb',	'parc',	'pard',	'parm']].drop_duplicates()
     # select the top 100 parameter set
     if calibration_type==-1:
-        ro_params_selected = np.array(results_sorted.loc[0:5][['para',	'parb',	'parc',	'pard',	'parm']])
+        ro_params_selected = np.array(results_sorted_unique.loc[0:10])
     else:
-        ro_params_selected = np.array(results_sorted.loc[0:100][['para', 'parb',	'parc',	'pard',	'parm']])
+        ro_params_selected = np.array(results_sorted_unique.loc[0:100])
 
     return ro_params_selected
     

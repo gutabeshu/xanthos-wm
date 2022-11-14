@@ -343,37 +343,37 @@ class CalibrateManaged:
     
 
 
-            
             # list of parameters values for second stage calibration
             print("\tStarting The Second Stage Parameter Selection: Runoff + Routing Parameter Selection")   
             # parameter setup for second stage calibration
             if self.set_calibrate == -1:
-                wmp_beta  = [0.1 ,0.2 ,0.3 ,0.4 , 0.5 , 0.6 , 0.7 , 0.8 , 0.9 , 1 ,2 ,3 ,4, 5 , 6, 7, 8, 9, 10]
+                wmp_beta  = [1]
             else:
                 wmp_beta  = [0.1 ,0.2 ,0.3 ,0.4 , 0.5 , 0.6 , 0.7 , 0.8 , 0.9 , 1 ,2 ,3 ,4, 5 , 6, 7, 8, 9, 10] #Give possible beta values as a List           
             
             wmp_alpha = [0.85]                              #Give possible alpha values as a List
             wm_params = pd.DataFrame(product(wmp_beta, wmp_alpha))
-            for ii in range(self.ro_params_selected.shape[0] + 1):
+            for ii in range(self.ro_params_selected.shape[0]):
+                abcdm_parameters = pd.concat([pd.DataFrame(
+                                    np.tile(self.ro_params_selected[ii,:], 
+                                    (len(wmp_beta),1))),
+                                    wm_params],1)  
                 if ii==0:
-                    abcdm_parameters = np.mean(self.ro_params_selected,0)  
+                    self.wm_abcdm_parameters = abcdm_parameters.copy()
                 else:
-                    abcdm_parameters = self.ro_params_selected[ii-1,:]  
-                wm_params[['a','b','c','d','m']] =  np.array(abcdm_parameters)  
-                if (ii==0):
-                    self.wm_abcdm_parameters = wm_params.copy()
-                else:
-                    self.wm_abcdm_parameters = pd.concat([self.wm_abcdm_parameters, wm_params], 0).reset_index(drop=True)
+                    self.wm_abcdm_parameters = pd.concat([self.wm_abcdm_parameters, abcdm_parameters], 0).reset_index(drop=True)
                 
             self.params_all = np.array(self.wm_abcdm_parameters)
-            self.params_wm = [spotpy.parameter.List('a',list(self.params_all[:,2])),        
-                                spotpy.parameter.List('b',list(self.params_all[:,3])),  
-                                spotpy.parameter.List('c',list(self.params_all[:,4])),  
-                                spotpy.parameter.List('d',list(self.params_all[:,5])),  
-                                spotpy.parameter.List('m',list(self.params_all[:,6])), 
-                                spotpy.parameter.List('wmbeta', list(self.params_all[:,0])),
-                                spotpy.parameter.List('wmalpha',list(self.params_all[:,1])) ]    
+            self.params_wm = [spotpy.parameter.List('a',list(self.params_all[:,0])),        
+                                spotpy.parameter.List('b',list(self.params_all[:,1])),  
+                                spotpy.parameter.List('c',list(self.params_all[:,2])),  
+                                spotpy.parameter.List('d',list(self.params_all[:,3])),  
+                                spotpy.parameter.List('m',list(self.params_all[:,4])), 
+                                spotpy.parameter.List('wmbeta', list(self.params_all[:,5])),
+                                spotpy.parameter.List('wmalpha',list(self.params_all[:,6])) ]    
 
+            pd.DataFrame(self.params_all).to_csv(self.ModelPerformance + 'xt.csv')
+            pd.DataFrame(self.params_wm).to_csv(self.ModelPerformance + 'yt.csv')
     # parameter set up
     def parameters(self):
         '''Returns ABCD Params'''
@@ -584,46 +584,47 @@ class CalibrateManaged:
         # parallel ='seq' # Runs everthing in sequential mode
         np.random.seed(2000) # Makes the results reproduceable
         skip_duplicates = True
+        name_ext_flow = '_Flow_ObjF_monthlyKGE'
         if (self.set_calibrate == -1) | (self.set_calibrate == 1):
-            if self.set_calibrate == -1:
-                self.repetitions = 1
-            else:
-                self.repetitions = self.params_all.shape[0] 
+            #if self.set_calibrate == -1:
+            #    self.repetitions = 5
+            #else:
+            self.repetitions = self.params_all.shape[0] 
 
             if self.calib_algorithm_streamflow == 'sceua':	          
-                sampler = spotpy.algorithms.sceua(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + '_Flow' ,
+                sampler = spotpy.algorithms.sceua(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + name_ext_flow ,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                          
-                sampler.sample(self.repetitions, ngs=10, kstop=100, peps=1e-7, pcento=1e-7)
+                sampler.sample(self.repetitions)#, ngs=10, kstop=100, peps=1e-7, pcento=1e-7)
 
             elif self.calib_algorithm_streamflow == 'NSGAII':	    
                 n_pop = 10
                 self.repetitions_nsgaii = int(self.repetitions / n_pop)         
-                sampler = spotpy.algorithms.NSGAII(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + '_Flow',
+                sampler = spotpy.algorithms.NSGAII(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                                
                 sampler.sample(self.repetitions_nsgaii, n_obj= 1, n_pop = n_pop)
 
             elif self.calib_algorithm_streamflow == 'mcmc':	          
-                sampler = spotpy.algorithms.mcmc(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + '_Flow',
+                sampler = spotpy.algorithms.mcmc(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                          
                 sampler.sample(self.repetitions)
 
 
             elif self.calib_algorithm_streamflow == 'demcz':	          
-                sampler = spotpy.algorithms.demcz(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + '_Flow',
+                sampler = spotpy.algorithms.demcz(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                            
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'dream':	          
-                sampler = spotpy.algorithms.dream(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + '_Flow',
+                sampler = spotpy.algorithms.dream(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                            
                 sampler.sample(self.repetitions)
             elif self.calib_algorithm_streamflow == 'abc':	          
-                sampler = spotpy.algorithms.abc(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + '_Flow',
+                sampler = spotpy.algorithms.abc(self,dbname=self.ModelPerformance + self.calib_algorithm_streamflow + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                            
                 sampler.sample(self.repetitions)
@@ -632,7 +633,7 @@ class CalibrateManaged:
         elif self.set_calibrate == 0:    
              
             if self.calib_algorithm_runoff == 'sceua':	          
-                sampler = spotpy.algorithms.sceua(self,dbname=self.ModelPerformance + self.calib_algorithm_runoff + '_Runoff',
+                sampler = spotpy.algorithms.sceua(self,dbname=self.ModelPerformance + self.calib_algorithm_runoff + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                          
                 sampler.sample(self.repetitions, ngs=10, kstop=10, peps=1e-7, pcento=1e-7)
@@ -640,7 +641,7 @@ class CalibrateManaged:
             elif self.calib_algorithm_runoff == 'NSGAII':	                 
                 n_pop = 10                
                 self.repetitions_nsgaii = int(self.repetitions / n_pop)         
-                sampler = spotpy.algorithms.NSGAII(self,dbname=self.ModelPerformance + self.calib_algorithm_runoff + '_Runoff',
+                sampler = spotpy.algorithms.NSGAII(self,dbname=self.ModelPerformance + self.calib_algorithm_runoff + name_ext_flow,
                                             dbformat="csv",dbappend=False,save_sim=False)#,
                                             #parallel='mpi' )                                                
                 sampler.sample(self.repetitions_nsgaii, n_obj= 1, n_pop = n_pop)
