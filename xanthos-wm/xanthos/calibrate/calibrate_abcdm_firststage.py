@@ -84,18 +84,17 @@ class Calibrate_runoff:
         
 
     #@staticmethod
-    def objectivefunction(self, simulation, evaluation):
+    def objectivefunction(self, simulation, evaluation, method_objfun = 'rrmse'):
         """Calculates Model Performance.
         Objective function to be minimized (if sceua /NSGAII is used) and maximized (all others)
         """
         # sceua requires minimization which will result in a negative KGE
-        method = self.calib_algorithm
-        if (method == 'sceua') | (method == 'NSGAII'):
-            multiplier = -1
-        else:
+        if (self.calib_algorithm == 'sceua') | (self.calib_algorithm == 'NSGAII'):
             multiplier = 1
+        else:
+            multiplier = -1
 		
-        obj1 = spotpy.objectivefunctions.kge(evaluation, simulation) * multiplier
+        obj1 = spotpy.objectivefunctions.rrmse(evaluation, simulation) * multiplier
 
         return obj1
 
