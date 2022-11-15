@@ -1,4 +1,5 @@
 import os
+import time
 import spotpy
 import numpy as np
 import pandas as pd
@@ -75,10 +76,12 @@ class Calibrate_runoff:
                         spinup_steps=self.runoff_spinup,
                         method="dist")					 
         he.emulate()
-        self.rsim =  np.nansum(he.rsim * self.conversion, 1)
 
+        ## self.rsim =  np.nansum(he.rsim * self.conversion, 1)
         if self.calibration_type == 1:
             self.rsim = timeseries_coverter(np.nanmean(he.rsim, 1) , start_yr=1971, ending_yr=2001)[0:20]
+        elif self.calibration_type == -1:
+            self.rsim = timeseries_coverter(np.nansum(he.rsim * self.conversion, 1) , start_yr=1971, ending_yr=2001)
 
         return self.rsim
         
@@ -102,7 +105,7 @@ class Calibrate_runoff:
     def evaluation(self):
         """observed streamflow data"""
         if self.calibration_type == -1:
-            self.eval_obs_data = self.ts_bsn_obs
+            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs, start_yr=1971, ending_yr=2001)
         elif self.calibration_type == 1:
             self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs , start_yr=1971, ending_yr=1990)
 
@@ -188,15 +191,13 @@ def calibrate_basin(pet,
         sampler.sample(repetitions)
 
     # re-read the output file
+    time.sleep(30)
     results = pd.read_csv(dbname_dir + name_ext + '.csv').dropna(axis=0)
     # sort parameter sets based on the objective function
     results_sorted = results.sort_values(by = 'like1', ascending=True).reset_index(drop=True)
     results_sorted_unique = results_sorted[['para', 'parb',	'parc',	'pard',	'parm']].drop_duplicates()
     # select the top 100 parameter set
-    if calibration_type==-1:
-        ro_params_selected = np.array(results_sorted_unique.loc[0:10])
-    else:
-        ro_params_selected = np.array(results_sorted_unique.loc[0:100])
+    ro_params_selected = np.array(results_sorted_unique.loc[0:100])
 
     return ro_params_selected
     
