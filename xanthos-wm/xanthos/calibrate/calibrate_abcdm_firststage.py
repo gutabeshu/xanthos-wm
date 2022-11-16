@@ -48,7 +48,7 @@ class Calibrate_runoff:
         self.LB = 1e-4
         self.UB = 1 - self.LB
         self.lbounds = [self.LB, self.LB,   self.LB, self.LB, self.LB]
-        self.ubounds = [self.UB, 8 - self.LB, self.UB, self.UB, self.UB]     		
+        self.ubounds = [self.UB, 8 - self.LB, self.UB, self.UB, self.UB]
     # set up parameters
 
     def parameters(self):
@@ -56,13 +56,13 @@ class Calibrate_runoff:
         params = self.params_ro
         # automatic parameter selection following the optimization gradient
         # params_order = [0,1,2,3,4]
-        # params = [spotpy.parameter.Uniform(self.lbounds[p], 
-        #                                     self.ubounds[p]) 
+        # params = [spotpy.parameter.Uniform(self.lbounds[p],
+        #                                     self.ubounds[p])
         #                                     for p in params_order]
         return spotpy.parameter.generate(params)
 
     def simulation(self, pars):
-        """ABCD model and mrtm routing model : this function provides 
+        """ABCD model and mrtm routing model : this function provides
            simulated streamflow"""
         he = AbcdManaged(pars=pars,
                          soil_water_initial=self.SM[self.basin_idx],
@@ -89,7 +89,7 @@ class Calibrate_runoff:
 
     def objectivefunction(self, simulation, evaluation):
         """Calculates Model Performance.
-        Objective function to be minimized (if sceua /NSGAII is used) and 
+        Objective function to be minimized (if sceua /NSGAII is used) and
         maximized (all others)
         """
         # sceua requires minimization which will result in a negative KGE
@@ -105,7 +105,7 @@ class Calibrate_runoff:
     def evaluation(self):
         """observed streamflow data"""
         if self.calibration_type == -1:
-            self.eval_obs_data = self.ts_bsn_obs  # timeseries_coverter(self.ts_bsn_obs, start_yr=self.start_yearx, ending_yr=self.end_yearx)
+            self.eval_obs_data = self.ts_bsn_obs
         elif self.calibration_type == 1:
             self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs,
                                                      start_yr=self.start_yearx,
@@ -158,7 +158,7 @@ def calibrate_basin(start_year,
     # skip_duplicates = True
     name_ext = calib_algorithm + '_Runoff_ObjF_annualKGE'
     if calibration_type == -1:
-        name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE' 
+        name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE'
 
     if calib_algorithm == 'sceua':
         sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,
