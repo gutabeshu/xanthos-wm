@@ -161,9 +161,7 @@ class CalibrateManaged:
         self.obs_unit = obs_unit
         self.out_dir = out_dir
 
-
         self.parameternames = CalibrateManaged.PARAMETER_NAMES
-
         # load calibration data
         self.calib_data = DataCalibrationManaged(config_obj=config_obj,
                                                  cal_observed=cal_observed,
@@ -217,17 +215,14 @@ class CalibrateManaged:
         self.map_index = umth.sub2ind([CalibrateManaged.ngridrow, CalibrateManaged.ngridcol],
                                       self.reference_data.coords[:, 4].astype(int) - 1,
                                       self.reference_data.coords[:, 3].astype(int) - 1)
-
-        self.routing_data = DataMrtmManaged(start_year=self.start_year,
-                                            end_year=self.end_year,
-                                            flow_distance_file=self.flow_distance_file,
-                                            flow_direction_file=self.flow_direction_file,
-                                            stream_velocity_file=self.stream_velocity_file,
-                                            historical_mode=self.historical_mode,
-                                            hist_channel_storage_file=self.hist_channel_storage_file,
-                                            hist_channel_storage_varname=self.hist_channel_storage_varname)
-
- 		
+        self.routing_data = DataMrtmManaged(start_year = self.start_year,
+                                            end_year = self.end_year,
+                                            flow_distance_file = self.flow_distance_file,
+                                            flow_direction_file = self.flow_direction_file,
+                                            stream_velocity_file = self.stream_velocity_file,
+                                            historical_mode = self.historical_mode,
+                                            hist_channel_storage_file = self.hist_channel_storage_file,
+                                            hist_channel_storage_varname = self.hist_channel_storage_varname)	
         ## contributing grids for grdc  station
         self.dsid = routing_mod.downstream(self.reference_data.coords, self.routing_data.flow_dir, CalibrateManaged)
         self.upid = routing_mod.upstream(self.reference_data.coords, self.dsid, CalibrateManaged)
@@ -259,10 +254,10 @@ class CalibrateManaged:
             self.bsn_TMIN = self.tmin[self.basin_idx]
             self.tminx = self.tmin
 
-        # Unit conversion for runoff case
+        #Unit conversion for runoff case
         #if self.obs_unit == "km3_per_mth":
         self.conversion = self.bsn_areas * 1e-6
-        ##  Observation data for calibration 			
+        #Observation data for calibration 			
         if self.set_calibrate <= 0:
             self.bsn_obs_runoff = np.squeeze(self.obs[np.where(self.obs[:,0]==self.basin_num)[0],3])
             self.bsn_obs  = np.divide(np.squeeze(self.obs[np.where(self.obs[:,0]==self.basin_num)[0],3])*1e9,  
@@ -595,7 +590,6 @@ class CalibrateManaged:
         """
         # parallel ='seq' # Runs everthing in sequential mode
         np.random.seed(2000) # Makes the results reproduceable
-        skip_duplicates = True
         name_ext_flow = '_Flow_ObjF_monthlyKGE'
         if (self.set_calibrate == -1) | (self.set_calibrate == 1):
             # number of iterations

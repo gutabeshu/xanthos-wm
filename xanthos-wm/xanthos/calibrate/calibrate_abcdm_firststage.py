@@ -57,7 +57,7 @@ class Calibrate_runoff:
         self.lbounds = [self.LB, self.LB,   self.LB, self.LB, self.LB]
         self.ubounds = [self.UB, 8- self.LB,self.UB, self.UB, self.UB]                    
         		
-     # set up parameters
+     #set up parameters
     def parameters(self):
         # parmateres from list created with lhc
         params = self.params_ro   
@@ -81,7 +81,7 @@ class Calibrate_runoff:
                         method="dist")					 
         he.emulate()
 
-        ## self.rsim =  np.nansum(he.rsim * self.conversion, 1)
+        #self.rsim =  np.nansum(he.rsim * self.conversion, 1)
         if self.calibration_type == -1:
             self.rsim = np.nansum(he.rsim * self.conversion, 1) 
         elif self.calibration_type == 1:
@@ -120,7 +120,7 @@ class Calibrate_runoff:
         line = str(objectivefunctions) + ',' + str(parameter).strip('[]') + ',' + str(simulations).strip('[]') + '\n'
         self.database.write(line)
 
-# calibration set up
+#calibration set up
 def calibrate_basin(start_year,
                     end_year,
                     pet,
@@ -154,13 +154,13 @@ def calibrate_basin(start_year,
                                                 calibration_type,
                                                 conversion
                                                 )
-    # parallel ='seq' # Runs everthing in sequential mode
+    #parallel ='seq' # Runs everthing in sequential mode
     np.random.seed(2000) # Makes the results reproduceable
     skip_duplicates = True
     name_ext = calib_algorithm + '_Runoff_ObjF_annualKGE'
     if calibration_type == -1:
         name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE'
-    ##    
+    #  
     if calib_algorithm == 'sceua':	          
         sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,dbname= dbname_dir +  name_ext,
                                     dbformat="csv",dbappend=False,save_sim=False)#,
@@ -199,13 +199,13 @@ def calibrate_basin(start_year,
                                     #parallel='mpi' )                                            
         sampler.sample(repetitions)
 
-    # re-read the output file
+    #re-read the output file
     time.sleep(30)
     results = pd.read_csv(dbname_dir + name_ext + '.csv').dropna(axis=0)
-    # sort parameter sets based on the objective function
+    #sort parameter sets based on the objective function
     results_sorted = results.sort_values(by = 'like1', ascending=True).reset_index(drop=True)
     results_sorted_unique = results_sorted[['para', 'parb',	'parc',	'pard',	'parm']].drop_duplicates()
-    # select the top 100 parameter set
+    #select the top 100 parameter set
     ro_params_selected = np.array(results_sorted_unique.loc[0:100])
 
     return ro_params_selected
@@ -213,7 +213,7 @@ def calibrate_basin(start_year,
 
 
 
-# converts monthly to annual
+#converts monthly to annual
 def timeseries_coverter(data_array, start_yr, ending_yr):
     from datetime import date, timedelta
     sdate = date(int(start_yr),1,1)
