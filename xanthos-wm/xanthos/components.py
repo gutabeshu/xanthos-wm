@@ -29,6 +29,7 @@ from xanthos.data_reader.data_hargreaves_semani import DataHargreavesSemani
 from xanthos.data_reader.data_thornthwaite import DataThornthwaite
 from xanthos.data_reader.data_reference import DataReference
 from xanthos.data_reader.data_gwam import DataGwam
+from xanthos.data_reader.data_mrtm import DataMrtm
 from xanthos.data_reader.data_mrtm_managed import DataMrtmManaged
 from xanthos.data_reader.data_mrtm_managed import DataUtils
 from xanthos.data_reader.data_abcd import DataAbcd
