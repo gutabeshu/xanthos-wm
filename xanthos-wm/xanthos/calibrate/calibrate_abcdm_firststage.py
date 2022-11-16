@@ -1,12 +1,11 @@
+import warnings
+warnings.filterwarnings('ignore')
 import time
 import spotpy
 import numpy as np
 import pandas as pd
+from datetime import date
 from xanthos.runoff.abcd_managed import AbcdManaged
-
-#warning
-import warnings
-warnings.filterwarnings('ignore')
 
 
 class Calibrate_runoff:
@@ -49,7 +48,7 @@ class Calibrate_runoff:
         self.lbounds = [self.LB, self.LB,   self.LB, self.LB, self.LB]
         self.ubounds = [self.UB, 8- self.LB,self.UB, self.UB, self.UB]                    
         		
-     #set up parameters
+    #set up parameters
     def parameters(self):
         # parmateres from list created with lhc
         params = self.params_ro   
@@ -148,7 +147,7 @@ def calibrate_basin(start_year,
                                                 )
     #parallel ='seq' # Runs everthing in sequential mode
     np.random.seed(2000) # Makes the results reproduceable
-    skip_duplicates = True
+    #skip_duplicates = True
     name_ext = calib_algorithm + '_Runoff_ObjF_annualKGE'
     if calibration_type == -1:
         name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE'
@@ -206,8 +205,7 @@ def calibrate_basin(start_year,
 
 
 #converts monthly to annual
-def timeseries_coverter(data_array, start_yr, ending_yr):
-    from datetime import date, timedelta
+def timeseries_coverter(data_array, start_yr, ending_yr):    
     sdate = date(int(start_yr),1,1)
     edate = date(int(ending_yr), 12, 31)  
     data_ts = pd.DataFrame(data_array)
