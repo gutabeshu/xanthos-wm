@@ -1,0 +1,124 @@
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+Could not import boto3, continuing with reduced functionality.
+---Processing PET...
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+Could not import boto3, continuing with reduced functionality.
+---Processing PET...
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Number of Months    : 372
+Running: Historic Mode
+Running: Historic Mode
+---Processing PET...
+---Processing PET...
+---PET processed in 0.0688169002532959 seconds---
+---PET processed in 0.0688169002532959 seconds---
+---Loading calibration data:
+---Loading calibration data:
+---Running calibration:
+---Running calibration:
+---Output simulation results:
+---Output simulation results:
+No valid output variables specified
+No valid output variables specified
+Aggregated unit is km3permonth
+Aggregated unit is km3permonth
+---Output finished: 0.004984855651855469 seconds ---
+---Output finished: 0.004984855651855469 seconds ---
+End of pm_abcd_mrtm_watch_1971_2001
+End of pm_abcd_mrtm_watch_1971_2001
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+---Processing PET...
+---PET processed in 0.06482839584350586 seconds---
+---Loading calibration data:
+---Running calibration:
+---Output simulation results:
+No valid output variables specified
+Aggregated unit is km3permonth
+---Output finished: 0.000997304916381836 seconds ---
+End of pm_abcd_mrtm_watch_1971_2001
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+Could not import boto3, continuing with reduced functionality.
+---Processing PET...
+---PET processed in 0.07136249542236328 seconds---
+---Loading calibration data:
+---Running calibration:
+---Output simulation results:
+No valid output variables specified
+Aggregated unit is km3permonth
+---Output finished: 0.09676885604858398 seconds ---
+End of pm_abcd_mrtm_watch_1971_2001
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+Could not import boto3, continuing with reduced functionality.
+---Processing PET...
+---PET processed in 0.06487464904785156 seconds---
+---Loading calibration data:
+---Running calibration:
+---Output simulation results:
+No valid output variables specified
+Aggregated unit is km3permonth
+---Output finished: 0.10871720314025879 seconds ---
+End of pm_abcd_mrtm_watch_1971_2001
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+Could not import boto3, continuing with reduced functionality.
+---Processing PET...
+---PET processed in 0.06782054901123047 seconds---
+---Loading calibration data:
+---Running calibration:
+---Output simulation results:
+No valid output variables specified
+Aggregated unit is km3permonth
+---Output finished: 0.0029926300048828125 seconds ---
+End of pm_abcd_mrtm_watch_1971_2001
+ProjectName : pm_abcd_mrtm_watch_1971_2001
+InputFolder : D:\Xanthos-Repo\xanthos-wm\example\input
+OutputFolder: D:\Xanthos-Repo\xanthos-wm\example\output\pm_abcd_mrtm_watch_1971_2001
+StartYear - End Year: 1971-2001
+Number of Months    : 372
+Running: Historic Mode
+---Processing PET...
+---PET processed in 0.06781959533691406 seconds---
+---Loading calibration data:
+---Running calibration:
+---Output simulation results:
+No valid output variables specified
+Aggregated unit is km3permonth
+---Output finished: 0.001995563507080078 seconds ---
+End of pm_abcd_mrtm_watch_1971_2001
