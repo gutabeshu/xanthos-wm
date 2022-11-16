@@ -13,7 +13,7 @@ class TestCalibManaged(unittest.TestCase):
     """Test that the default outputs do not change."""
 
     DEFAULT_CONFIG_FILE = pkg_resources.resource_filename('xanthos-wm/xanthos-wm/xanthos', 'tests/data/inputs/pm_abcd_mrtm_managed.ini')
-    EXAMPLE_DIR = pkg_resources.resource_filename('xanthos-wm/xanthos', 'test/data')
+    EXAMPLE_DIR = pkg_resources.resource_filename('xanthos-wm/xanthos-wm/xanthos', 'test/data')
     DEFAULT_OUTPUTS_DIR = pkg_resources.resource_filename('xanthos-wm/xanthos-wm/xanthos', 'test/data/outputs/pm_abcd_mrtm_watch_1971_2001')
 
     def test_outputs(self):
