@@ -18,19 +18,19 @@ class TestPenmanMonteith(unittest.TestCase):
     SNOW_IDX = 6
     LC_YEARS = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2005, 2010]
 
-    INPUT_ELEV = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/elev.npy')
-    INPUT_ALBEDO = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_albedo.csv')
-    INPUT_ETPARS = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_ET_para.csv')
-    INPUT_LAI = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_lai.csv')
-    INPUT_LAIMAX = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_laimax.csv')
-    INPUT_LAIMIN = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_laimin.csv')
-    INPUT_LUCC = pkg_resources.resource_filename('xanthos', 'tests/data/inputs/pet/penman_monteith/lucc1901_2010_lump.npy')
-    INPUT_RHS = pkg_resources.resource_filename('xanthos', f'tests/data/inputs/pet/penman_monteith/rhs_watch_monthly_percent_{START_YR}_{THROUGH_YR}.npy')
-    INPUT_RLDS = pkg_resources.resource_filename('xanthos', f'tests/data/inputs/pet/penman_monteith/rlds_watch_monthly_wperm2_{START_YR}_{THROUGH_YR}.npy')
-    INPUT_RSDS = pkg_resources.resource_filename('xanthos', f'tests/data/inputs/pet/penman_monteith/rsds_watch_monthly_wperm2_{START_YR}_{THROUGH_YR}.npy')
-    INPUT_TAS = pkg_resources.resource_filename('xanthos', f'tests/data/inputs/pet/penman_monteith/tas_watch_monthly_degc_{START_YR}_{THROUGH_YR}.npy')
-    INPUT_TASMIN = pkg_resources.resource_filename('xanthos', f'tests/data/inputs/pet/penman_monteith/tasmin_watch_monthly_degc_{START_YR}_{THROUGH_YR}.npy')
-    INPUT_WIND = pkg_resources.resource_filename('xanthos', f'tests/data/inputs/pet/penman_monteith/wind_watch_monthly_mpers_{START_YR}_{THROUGH_YR}.npy')
+    INPUT_ELEV = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/elev.npy')
+    INPUT_ALBEDO = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_albedo.csv')
+    INPUT_ETPARS = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_ET_para.csv')
+    INPUT_LAI = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_lai.csv')
+    INPUT_LAIMAX = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_laimax.csv')
+    INPUT_LAIMIN = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/gcam_laimin.csv')
+    INPUT_LUCC = pkg_resources.resource_filename('xanthos-wm/xanthos', 'tests/data/inputs/pet/penman_monteith/lucc1901_2010_lump.npy')
+    INPUT_RHS = pkg_resources.resource_filename('xanthos-wm/xanthos', f'tests/data/inputs/pet/penman_monteith/rhs_watch_monthly_percent_{START_YR}_{THROUGH_YR}.npy')
+    INPUT_RLDS = pkg_resources.resource_filename('xanthos-wm/xanthos', f'tests/data/inputs/pet/penman_monteith/rlds_watch_monthly_wperm2_{START_YR}_{THROUGH_YR}.npy')
+    INPUT_RSDS = pkg_resources.resource_filename('xanthos-wm/xanthos', f'tests/data/inputs/pet/penman_monteith/rsds_watch_monthly_wperm2_{START_YR}_{THROUGH_YR}.npy')
+    INPUT_TAS = pkg_resources.resource_filename('xanthos-wm/xanthos', f'tests/data/inputs/pet/penman_monteith/tas_watch_monthly_degc_{START_YR}_{THROUGH_YR}.npy')
+    INPUT_TASMIN = pkg_resources.resource_filename('xanthos-wm/xanthos', f'tests/data/inputs/pet/penman_monteith/tasmin_watch_monthly_degc_{START_YR}_{THROUGH_YR}.npy')
+    INPUT_WIND = pkg_resources.resource_filename('xanthos-wm/xanthos', f'tests/data/inputs/pet/penman_monteith/wind_watch_monthly_mpers_{START_YR}_{THROUGH_YR}.npy')
 
     # TODO:  look up units for PET output
     COMP_PET = pkg_resources.resource_filename('xanthos', f'tests/data/comp_data/pet_penman_monteith_watch_mmpermth_{START_YR}_{THROUGH_YR}.npy')
