@@ -1,11 +1,13 @@
-import warnings
-warnings.filterwarnings('ignore')
 import time
-import spotpy
+import warnings
+from datetime import date
+
 import numpy as np
 import pandas as pd
-from datetime import date
+import spotpy
 from xanthos.runoff.abcd_managed import AbcdManaged
+
+warnings.filterwarnings('ignore')
 
 
 class Calibrate_runoff:
@@ -27,8 +29,8 @@ class Calibrate_runoff:
                  conversion
                  ):
 
-        self.start_yearx=start_year
-        self.end_yearx=end_year        
+        self.start_yearx = start_year
+        self.end_yearx = end_year
         self.SM = SM
         self.pet = pet
         self.precip = precip
@@ -42,68 +44,72 @@ class Calibrate_runoff:
         self.params_ro = params_ro
         self.calibration_type = calibration_type
         self.conversion = conversion
-        #Runoff
+        # Runoff
         self.LB = 1e-4
-        self.UB = 1 - self.LB	
+        self.UB = 1 - self.LB
         self.lbounds = [self.LB, self.LB,   self.LB, self.LB, self.LB]
-        self.ubounds = [self.UB, 8- self.LB,self.UB, self.UB, self.UB]                    
-        		
-    #set up parameters
+        self.ubounds = [self.UB, 8 - self.LB, self.UB, self.UB, self.UB]     		
+    # set up parameters
+
     def parameters(self):
         # parmateres from list created with lhc
-        params = self.params_ro   
-        #automatic parameter selection following the optimization gradient
+        params = self.params_ro
+        # automatic parameter selection following the optimization gradient
         # params_order = [0,1,2,3,4]
         # params = [spotpy.parameter.Uniform(self.lbounds[p], 
         #                                     self.ubounds[p]) 
-        #                                     for p in params_order]           
+        #                                     for p in params_order]
         return spotpy.parameter.generate(params)
-			
+
     def simulation(self, pars):
-        """ABCD model and mrtm routing model : this function provides simulated streamflow"""
+        """ABCD model and mrtm routing model : this function provides 
+           simulated streamflow"""
         he = AbcdManaged(pars=pars,
-                        soil_water_initial=self.SM[self.basin_idx],
-                        pet=self.pet[self.basin_idx,:],
-                        precip=self.precip[self.basin_idx,:],
-                        tmin=self.tmin[self.basin_idx,:],
-                        basin_ids=self.basin_ids[self.basin_idx],
-                        process_steps=self.nmonths,
-                        spinup_steps=self.runoff_spinup,
-                        method="dist")					 
+                         soil_water_initial=self.SM[self.basin_idx],
+                         pet=self.pet[self.basin_idx, :],
+                         precip=self.precip[self.basin_idx, :],
+                         tmin=self.tmin[self.basin_idx, :],
+                         basin_ids=self.basin_ids[self.basin_idx],
+                         process_steps=self.nmonths,
+                         spinup_steps=self.runoff_spinup,
+                         method="dist")
         he.emulate()
 
-        #self.rsim =  np.nansum(he.rsim * self.conversion, 1)
+        # self.rsim =  np.nansum(he.rsim * self.conversion, 1)
         if self.calibration_type == -1:
-            self.rsim = np.nansum(he.rsim * self.conversion, 1) 
+            self.rsim = np.nansum(he.rsim * self.conversion, 1)
         elif self.calibration_type == 1:
-            self.rsim = timeseries_coverter(np.nanmean(he.rsim, 1) , start_yr=self.start_yearx, ending_yr=self.end_yearx)[0:20]
+            self.rsim = timeseries_coverter(np.nanmean(he.rsim, 1),
+                                            start_yr=self.start_yearx,
+                                            ending_yr=self.end_yearx)[0:20]
 
         return self.rsim
-        
 
-    #@staticmethod
+    # @staticmethod
+
     def objectivefunction(self, simulation, evaluation):
         """Calculates Model Performance.
-        Objective function to be minimized (if sceua /NSGAII is used) and maximized (all others)
+        Objective function to be minimized (if sceua /NSGAII is used) and 
+        maximized (all others)
         """
         # sceua requires minimization which will result in a negative KGE
-        if (self.calib_algorithm == 'sceua') | (self.calib_algorithm == 'NSGAII'):
+        if ((self.calib_algorithm == 'sceua') | (self.calib_algorithm == 'NSGAII')):
             multiplier = -1
         else:
             multiplier = 1
-		
-        obj1 = spotpy.objectivefunctions.kge(evaluation, simulation) * multiplier
+        obj1 = spotpy.objectivefunctions.kge(evaluation,
+                                             simulation) * multiplier
 
         return obj1
-
 
     def evaluation(self):
         """observed streamflow data"""
         if self.calibration_type == -1:
-            self.eval_obs_data = self.ts_bsn_obs#timeseries_coverter(self.ts_bsn_obs, start_yr=self.start_yearx, ending_yr=self.end_yearx)
+            self.eval_obs_data = self.ts_bsn_obs  # timeseries_coverter(self.ts_bsn_obs, start_yr=self.start_yearx, ending_yr=self.end_yearx)
         elif self.calibration_type == 1:
-            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs , start_yr=self.start_yearx, 
-                                                     ending_yr=self.start_yearx + (len(self.ts_bsn_obs)/12)-1 )
+            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs,
+                                                     start_yr=self.start_yearx,
+                                                     ending_yr=self.start_yearx + (len(self.ts_bsn_obs)/12)-1)
 
         return self.eval_obs_data
 
@@ -111,7 +117,9 @@ class Calibrate_runoff:
         line = str(objectivefunctions) + ',' + str(parameter).strip('[]') + ',' + str(simulations).strip('[]') + '\n'
         self.database.write(line)
 
-#calibration set up
+# calibration set up
+
+
 def calibrate_basin(start_year,
                     end_year,
                     pet,
@@ -130,87 +138,99 @@ def calibrate_basin(start_year,
                     calibration_type,
                     conversion):
     runoff_model_spot_setup = Calibrate_runoff(start_year,
-                                                end_year,
-                                                pet,
-                                                precip,
-                                                tmin,
-                                                SM,
-                                                ts_bsn_obs,
-                                                basin_ids,
-                                                basin_idx,
-                                                nmonths,
-                                                runoff_spinup,
-                                                calib_algorithm,
-                                                params_runoff,
-                                                calibration_type,
-                                                conversion
-                                                )
-    #parallel ='seq' # Runs everthing in sequential mode
-    np.random.seed(2000) # Makes the results reproduceable
-    #skip_duplicates = True
+                                               end_year,
+                                               pet,
+                                               precip,
+                                               tmin,
+                                               SM,
+                                               ts_bsn_obs,
+                                               basin_ids,
+                                               basin_idx,
+                                               nmonths,
+                                               runoff_spinup,
+                                               calib_algorithm,
+                                               params_runoff,
+                                               calibration_type,
+                                               conversion
+                                               )
+    # parallel ='seq' # Runs everthing in sequential mode
+    np.random.seed(2000)  # Makes the results reproduceable
+    # skip_duplicates = True
     name_ext = calib_algorithm + '_Runoff_ObjF_annualKGE'
     if calibration_type == -1:
-        name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE'
-    #  
-    if calib_algorithm == 'sceua':	          
-        sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,dbname= dbname_dir +  name_ext,
-                                    dbformat="csv",dbappend=False,save_sim=False)#,
-                                    #parallel='mpi' )                                          
-        sampler.sample(repetitions)#, ngs=50, kstop=500, peps=1e-7, pcento=1e-7)
+        name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE' 
 
-    elif calib_algorithm == 'NSGAII':	    
+    if calib_algorithm == 'sceua':
+        sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,
+                                          dbname=dbname_dir + name_ext,
+                                          dbformat="csv",
+                                          dbappend=False,
+                                          save_sim=False)  # ,parallel='mpi')
+        sampler.sample(repetitions)
+
+    elif calib_algorithm == 'NSGAII':
         n_pop = 10
-        repetitions_nsgaii = int(repetitions / n_pop)         
-        sampler = spotpy.algorithms.NSGAII(runoff_model_spot_setup, dbname=dbname_dir + name_ext,
-                                    dbformat="csv",dbappend=False,save_sim=False)#,
-                                    #parallel='mpi' )                                                
-        sampler.sample(repetitions_nsgaii, n_obj= 1, n_pop = n_pop)
+        repetitions_nsgaii = int(repetitions / n_pop)
+        sampler = spotpy.algorithms.NSGAII(runoff_model_spot_setup,
+                                           dbname=dbname_dir + name_ext,
+                                           dbformat="csv",
+                                           dbappend=False,
+                                           save_sim=False)  # ,parallel='mpi')
+        sampler.sample(repetitions_nsgaii, n_obj=1, n_pop=n_pop)
 
-    elif calib_algorithm == 'mcmc':	          
-        sampler = spotpy.algorithms.mcmc(runoff_model_spot_setup,dbname=dbname_dir + name_ext,
-                                    dbformat="csv",dbappend=False,save_sim=False)#,
-                                    #parallel='mpi' )                                          
+    elif calib_algorithm == 'mcmc':
+        sampler = spotpy.algorithms.mcmc(runoff_model_spot_setup,
+                                         dbname=dbname_dir + name_ext,
+                                         dbformat="csv",
+                                         dbappend=False,
+                                         save_sim=False)  # ,parallel='mpi' )
         sampler.sample(repetitions)
 
-
-    elif calib_algorithm == 'demcz':	          
-        sampler = spotpy.algorithms.demcz(runoff_model_spot_setup,dbname_dir + name_ext,
-                                    dbformat="csv",dbappend=False,save_sim=False)#,
-                                    #parallel='mpi' )                                            
+    elif calib_algorithm == 'demcz':
+        sampler = spotpy.algorithms.demcz(runoff_model_spot_setup,
+                                          dbname_dir + name_ext,
+                                          dbformat="csv",
+                                          dbappend=False,
+                                          save_sim=False)  # , parallel='mpi' )
         sampler.sample(repetitions)
 
-    elif calib_algorithm == 'dream':	          
-        sampler = spotpy.algorithms.dream(runoff_model_spot_setup,dbname=dbname_dir + name_ext,
-                                    dbformat="csv",dbappend=False,save_sim=False)#,
-                                    #parallel='mpi' )                                            
+    elif calib_algorithm == 'dream':
+        sampler = spotpy.algorithms.dream(runoff_model_spot_setup,
+                                          dbname=dbname_dir + name_ext,
+                                          dbformat="csv",
+                                          dbappend=False,
+                                          save_sim=False)  # ,parallel='mpi' )
         sampler.sample(repetitions)
-    elif calib_algorithm == 'abc':	          
-        sampler = spotpy.algorithms.abc(runoff_model_spot_setup,dbname=dbname_dir + name_ext,
-                                    dbformat="csv",dbappend=False,save_sim=False)#,
-                                    #parallel='mpi' )                                            
+    elif calib_algorithm == 'abc':
+        sampler = spotpy.algorithms.abc(runoff_model_spot_setup,
+                                        dbname=dbname_dir + name_ext,
+                                        dbformat="csv",
+                                        dbappend=False,
+                                        save_sim=False)  # ,parallel='mpi' )
         sampler.sample(repetitions)
 
-    #re-read the output file
+    # re-read the output file
     time.sleep(30)
     results = pd.read_csv(dbname_dir + name_ext + '.csv').dropna(axis=0)
-    #sort parameter sets based on the objective function
-    results_sorted = results.sort_values(by = 'like1', ascending=True).reset_index(drop=True)
-    results_sorted_unique = results_sorted[['para', 'parb',	'parc',	'pard',	'parm']].drop_duplicates()
-    #select the top 100 parameter set
+    # sort parameter sets based on the objective function
+    results_sorted = results.sort_values(by='like1',
+                                         ascending=True).reset_index(drop=True)
+    results_sorted_unique = results_sorted[
+                                          ['para', 'parb',
+                                           'parc',	'pard',	'parm']
+                                          ].drop_duplicates()
+    # select the top 100 parameter set
     ro_params_selected = np.array(results_sorted_unique.loc[0:100])
 
     return ro_params_selected
-    
+
+# converts monthly to annual
 
 
-
-#converts monthly to annual
-def timeseries_coverter(data_array, start_yr, ending_yr):    
-    sdate = date(int(start_yr),1,1)
-    edate = date(int(ending_yr), 12, 31)  
+def timeseries_coverter(data_array, start_yr, ending_yr):
+    sdate = date(int(start_yr), 1, 1)
+    edate = date(int(ending_yr), 12, 31)
     data_ts = pd.DataFrame(data_array)
-    
     data_ts.index = pd.date_range(start=sdate, end=edate, freq='M')
     mean_annual_data = np.squeeze(np.array(data_ts.resample('A').sum()))
-
     return mean_annual_data

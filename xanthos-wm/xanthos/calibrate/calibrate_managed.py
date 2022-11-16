@@ -269,8 +269,8 @@ class CalibrateManaged:
         else:
             self.bsn_obs = self.obs[np.where(self.obs[:, 0] == self.basin_num)][: self.nmonths, 1]
             # calibration and validation data
-            self.calib_length = int(0.5*len(self.bsn_obs_runoff))
-            self.data_length = int(len(self.bsn_obs_runoff))
+            self.calib_length = int(0.5*len(self.bsn_obs))
+            self.data_length = int(len(self.bsn_obs))
             self.bsn_obs_flow_calib = self.bsn_obs[0:self.calib_length]
             self.bsn_obs_flow_valid = self.bsn_obs[self.calib_length + 1:self.data_length]
             # basin observed runoff 
