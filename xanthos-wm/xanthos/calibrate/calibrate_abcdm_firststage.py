@@ -1,16 +1,8 @@
-import os
 import time
 import spotpy
 import numpy as np
 import pandas as pd
-import scipy.io as scio
-import matplotlib.pylab as plt
-from scipy.stats import qmc
-from itertools import product
-
 from xanthos.runoff.abcd_managed import AbcdManaged
-from xanthos.data_reader.data_abcd import DataAbcd
-from xanthos.data_reader.data_reference import DataReference
 
 #warning
 import warnings
