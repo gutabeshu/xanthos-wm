@@ -267,7 +267,7 @@ class CalibrateManaged:
             self.bsn_obs_runoff = np.squeeze(self.obs[np.where(self.obs[:,0]==self.basin_num)[0],3])
             self.bsn_obs  = np.divide(np.squeeze(self.obs[np.where(self.obs[:,0]==self.basin_num)[0],3])*1e9,  
                                                  (self.yr_imth_dys[:, 2]*24*3600))
-            self.calib_length = int(0.5*len(self.bsn_obs_runoff))
+            self.calib_length = int(0.7*len(self.bsn_obs_runoff))
             self.data_length = int(len(self.bsn_obs_runoff))
             self.bsn_obs_flow_calib = self.bsn_obs[0:self.calib_length]
             self.bsn_obs_flow_valid = self.bsn_obs[self.calib_length+1:self.data_length]
