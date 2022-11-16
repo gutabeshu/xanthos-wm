@@ -19,6 +19,8 @@ warnings.filterwarnings('ignore')
 
 class Calibrate_runoff:
     def __init__(self,
+                 start_year,
+                 end_year,
                  pet,
                  precip,
                  tmin,
@@ -34,6 +36,8 @@ class Calibrate_runoff:
                  conversion
                  ):
 
+        self.start_yearx=start_year
+        self.end_yearx=end_year        
         self.SM = SM
         self.pet = pet
         self.precip = precip
@@ -78,10 +82,10 @@ class Calibrate_runoff:
         he.emulate()
 
         ## self.rsim =  np.nansum(he.rsim * self.conversion, 1)
-        if self.calibration_type == 1:
-            self.rsim = timeseries_coverter(np.nanmean(he.rsim, 1) , start_yr=1971, ending_yr=2001)[0:20]
-        elif self.calibration_type == -1:
-            self.rsim = timeseries_coverter(np.nansum(he.rsim * self.conversion, 1) , start_yr=1971, ending_yr=2001)
+        if self.calibration_type == -1:
+            self.rsim = np.nansum(he.rsim * self.conversion, 1) 
+        elif self.calibration_type == 1:
+            self.rsim = timeseries_coverter(np.nanmean(he.rsim, 1) , start_yr=self.start_yearx, ending_yr=self.end_yearx)[0:20]
 
         return self.rsim
         
@@ -105,9 +109,10 @@ class Calibrate_runoff:
     def evaluation(self):
         """observed streamflow data"""
         if self.calibration_type == -1:
-            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs, start_yr=1971, ending_yr=2001)
+            self.eval_obs_data = self.ts_bsn_obs#timeseries_coverter(self.ts_bsn_obs, start_yr=self.start_yearx, ending_yr=self.end_yearx)
         elif self.calibration_type == 1:
-            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs , start_yr=1971, ending_yr=1990)
+            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs , start_yr=self.start_yearx, 
+                                                     ending_yr=self.start_yearx + (len(self.ts_bsn_obs)/12)-1 )
 
         return self.eval_obs_data
 
@@ -116,7 +121,9 @@ class Calibrate_runoff:
         self.database.write(line)
 
 # calibration set up
-def calibrate_basin(pet,
+def calibrate_basin(start_year,
+                    end_year,
+                    pet,
                     precip,
                     tmin,
                     SM,
@@ -131,26 +138,28 @@ def calibrate_basin(pet,
                     params_runoff,
                     calibration_type,
                     conversion):
-    runoff_model_spot_setup = Calibrate_runoff(pet,
-                                        precip,
-                                        tmin,
-                                        SM,
-                                        ts_bsn_obs,
-                                        basin_ids,
-                                        basin_idx,
-                                        nmonths,
-                                        runoff_spinup,
-                                        calib_algorithm,
-                                        params_runoff,
-                                        calibration_type,
-                                        conversion
-                                        )
+    runoff_model_spot_setup = Calibrate_runoff(start_year,
+                                                end_year,
+                                                pet,
+                                                precip,
+                                                tmin,
+                                                SM,
+                                                ts_bsn_obs,
+                                                basin_ids,
+                                                basin_idx,
+                                                nmonths,
+                                                runoff_spinup,
+                                                calib_algorithm,
+                                                params_runoff,
+                                                calibration_type,
+                                                conversion
+                                                )
     # parallel ='seq' # Runs everthing in sequential mode
     np.random.seed(2000) # Makes the results reproduceable
     skip_duplicates = True
     name_ext = calib_algorithm + '_Runoff_ObjF_annualKGE'
     if calibration_type == -1:
-        name_ext = '_Runoff_ObjF_monthlyKGE'
+        name_ext = calib_algorithm + '_Runoff_ObjF_monthlyKGE'
     ##    
     if calib_algorithm == 'sceua':	          
         sampler = spotpy.algorithms.sceua(runoff_model_spot_setup,dbname= dbname_dir +  name_ext,
@@ -207,8 +216,8 @@ def calibrate_basin(pet,
 # converts monthly to annual
 def timeseries_coverter(data_array, start_yr, ending_yr):
     from datetime import date, timedelta
-    sdate = date(start_yr,1,1)
-    edate = date(ending_yr, 12, 31)  
+    sdate = date(int(start_yr),1,1)
+    edate = date(int(ending_yr), 12, 31)  
     data_ts = pd.DataFrame(data_array)
     
     data_ts.index = pd.date_range(start=sdate, end=edate, freq='M')
