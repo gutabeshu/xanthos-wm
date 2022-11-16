@@ -93,7 +93,10 @@ class Calibrate_runoff:
         maximized (all others)
         """
         # sceua requires minimization which will result in a negative KGE
-        if ((self.calib_algorithm == 'sceua') | (self.calib_algorithm == 'NSGAII')):
+        if (
+            (self.calib_algorithm == 'sceua') |
+            (self.calib_algorithm == 'NSGAII')
+             ):
             multiplier = -1
         else:
             multiplier = 1
@@ -107,14 +110,19 @@ class Calibrate_runoff:
         if self.calibration_type == -1:
             self.eval_obs_data = self.ts_bsn_obs
         elif self.calibration_type == 1:
-            self.eval_obs_data = timeseries_coverter(self.ts_bsn_obs,
-                                                     start_yr=self.start_yearx,
-                                                     ending_yr=self.start_yearx + (len(self.ts_bsn_obs)/12)-1)
+            self.eval_obs_data = timeseries_coverter(
+                                    self.ts_bsn_obs,
+                                    start_yr=self.start_yearx,
+                                    ending_yr=self.start_yearx +
+                                    (len(self.ts_bsn_obs)/12)-1)
 
         return self.eval_obs_data
 
     def save(self, objectivefunctions, parameter, simulations):
-        line = str(objectivefunctions) + ',' + str(parameter).strip('[]') + ',' + str(simulations).strip('[]') + '\n'
+        line = str(
+                 objectivefunctions) + ',' + str(
+                    parameter).strip('[]') + ',' + str(
+                        simulations).strip('[]') + '\n'
         self.database.write(line)
 
 # calibration set up
