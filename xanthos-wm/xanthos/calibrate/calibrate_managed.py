@@ -1,6 +1,6 @@
 """
 Calibrate the ABCD model with and without water management.
-@authors:Guta Abeshu : gwabeshu@uh.edu  
+@authors:Guta Abeshu : gwabeshu@uh.edu
          University of Houston
          HongYi Li : hli57@uh.edu,
          University of Houston
@@ -177,7 +177,7 @@ class CalibrateManaged:
         bgrdc_indx = np.where(self.grdcData_info['basins'].values == self.basin_num)[0]
         if (len(bgrdc_indx) == 0) & (self.set_calibrate == 1):
             print("Error: GRDC data is not available for Basin: {}".format(self.basin_num))
-            sys.exit()            
+            sys.exit()
         elif (len(bgrdc_indx) == 1) & (self.set_calibrate == 1):
             self.basin_grdc_indx = bgrdc_indx[0]
             self.grdc_xanthosID = self.grdcData_info.loc[self.basin_grdc_indx]['xanthosID_new_adj'] - 1
@@ -192,7 +192,7 @@ class CalibrateManaged:
         self.q_max = np.array(self.calib_data.maxtif_natural)  # m3/s
         self.surface_area = np.array(self.calib_data.surface_area)  # square km
         self.max_depth = np.array(self.calib_data.max_depth)  # square km
-		
+
         self.WConsumption = np.array(self.calib_data.water_consumption)
         self.chs_ini = np.array(self.calib_data.ini_channel_storage)
         self.Initial_instream_flow = np.array(self.calib_data.instream_flow_natural)
@@ -202,7 +202,7 @@ class CalibrateManaged:
                                       self.q_max,
                                       self.surface_area,
                                       self.max_depth]).transpose()
-        self.res_data.columns = ["CAP",	"ECAP", "FLOW_M3S", "AREA", "DAM_HGT"]							   
+        self.res_data.columns = ["CAP",	"ECAP", "FLOW_M3S", "AREA", "DAM_HGT"]
         # routing data
         self.yr_imth_dys = helper.set_month_arrays(self.nmonths,
                                                    self.start_year,
@@ -234,14 +234,14 @@ class CalibrateManaged:
         else:
             self.basin_idx = np.where(self.basin_ids == self.basin_num)[0]
 
-        self.bsn_areas = self.basin_areas[self.basin_idx]        
+        self.bsn_areas = self.basin_areas[self.basin_idx]
         self.bsn_PET = self.pet[self.basin_idx]
         self.bsn_P = self.precip[self.basin_idx]
         # initial soil moisture
         self.bsn_SM = self.SM[self.basin_idx]
 
-		
-        
+
+
         # Minimum temperature is optional; if not provided, the snow components
         # of the model is effectively removed, so remove the model parameter
         # if no tmin provided, just ensure it is larger than the rain threshold
@@ -272,7 +272,7 @@ class CalibrateManaged:
             self.data_length = int(len(self.bsn_obs))
             self.bsn_obs_flow_calib = self.bsn_obs[0:self.calib_length]
             self.bsn_obs_flow_valid = self.bsn_obs[self.calib_length + 1:self.data_length]
-            # basin observed runoff 
+            # basin observed runoff
             self.bsn_obs_runoff = (np.multiply(self.bsn_obs, self.yr_imth_dys[0:self.data_length, 2]) *
                                    (1e3 * 24 * 3600) / self.grdc_drainage_area) - np.mean(self.WConsumption[self.basin_idx, 0:self.data_length], 0)  # mm/month
         # residence time in hr
@@ -294,15 +294,15 @@ class CalibrateManaged:
         # routing initializations
         self.chs_prev = np.squeeze(self.chs_ini)  # initial channel storage in m3
         self.instream_flow = np.squeeze(self.Initial_instream_flow)  # initial channel flow in m3 /s
-        self.mtifl_natural = np.squeeze(self.Initial_instream_flow)	
+        self.mtifl_natural = np.squeeze(self.Initial_instream_flow)
         # reservoir params
         usgrid_ppose = np.squeeze(np.array(pd.DataFrame(self.ppose[self.basin_idx])))
         grdc_us_grids_ = np.squeeze(np.array(pd.DataFrame(self.basin_idx)))
-        self.HPindex = grdc_us_grids_[(usgrid_ppose == 1)]  # Hydropower reservoir cells	
-        self.us_resrv_idx = grdc_us_grids_[(usgrid_ppose > 0)]       
+        self.HPindex = grdc_us_grids_[(usgrid_ppose == 1)]  # Hydropower reservoir cells
+        self.us_resrv_idx = grdc_us_grids_[(usgrid_ppose > 0)]
 
         self.Main_UseHP = (self.ppose == 1) & (self.basin_ids == self.basin_num)
-        self.halfDegree_global_dfG = self.res_data[self.Main_UseHP].reset_index(drop=True)  
+        self.halfDegree_global_dfG = self.res_data[self.Main_UseHP].reset_index(drop=True)
         self.Main_UseHPXP = np.where((self.ppose == 1) & (self.basin_ids == self.basin_num))[0]
 
         # best parameter from preceeding simulations
@@ -313,7 +313,7 @@ class CalibrateManaged:
         # calibration result output path
         self.ModelPerformance = os.path.join(self.out_dir, f"basin_calibration_{self.basin_num}")
 
-        # set up parameters  for first stage or runoff  
+        # set up parameters  for first stage or runoff
         # set number of parameter combinations with latin hyper cube sampling
         self.l_bounds = [CalibrateManaged.LB, CalibrateManaged.LB,   CalibrateManaged.LB, CalibrateManaged.LB, CalibrateManaged.LB]
         self.u_bounds = [CalibrateManaged.UB, 8 - CalibrateManaged.LB, CalibrateManaged.UB, CalibrateManaged.UB, CalibrateManaged.UB]
@@ -324,11 +324,11 @@ class CalibrateManaged:
         sample_params = sampler_lhc.random(n=self.repetitions)
         self.sample_params_set = np.squeeze(qmc.scale(sample_params, self.l_bounds, self.u_bounds))
 
-        self.params_ro_lhc = [spotpy.parameter.List('a', list(self.sample_params_set[:, 0])),        
-                              spotpy.parameter.List('b', list(self.sample_params_set[:, 1])),  
-                              spotpy.parameter.List('c', list(self.sample_params_set[:, 2])),  
-                              spotpy.parameter.List('d', list(self.sample_params_set[:, 3])),  
-                              spotpy.parameter.List('m', list(self.sample_params_set[:, 4])),             
+        self.params_ro_lhc = [spotpy.parameter.List('a', list(self.sample_params_set[:, 0])),
+                              spotpy.parameter.List('b', list(self.sample_params_set[:, 1])),
+                              spotpy.parameter.List('c', list(self.sample_params_set[:, 2])),
+                              spotpy.parameter.List('d', list(self.sample_params_set[:, 3])),
+                              spotpy.parameter.List('m', list(self.sample_params_set[:, 4])),
                               ]
         # two stage calibration case
         if (self.set_calibrate == -1) | (self.set_calibrate == 1):
@@ -351,14 +351,14 @@ class CalibrateManaged:
                                                             self.params_ro_lhc,
                                                             self.set_calibrate,
                                                             self.conversion)
-    
+
 
 
             # list of parameters values for second stage calibration
-            print("\tStarting The Second Stage Parameter Selection: Runoff + Routing Parameter Selection")   
+            print("\tStarting The Second Stage Parameter Selection: Runoff + Routing Parameter Selection")
             # parameter setup for second stage calibration
-            # Give possible beta values as a List   
-            self.wmp_beta = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]    
+            # Give possible beta values as a List
+            self.wmp_beta = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             # Give possible alpha values as a List
             wmp_alpha = [0.85]
             wm_params = pd.DataFrame(product(self.wmp_beta, wmp_alpha))
@@ -372,7 +372,7 @@ class CalibrateManaged:
                 else:
                     self.wm_abcdm_parameters = pd.concat([self.wm_abcdm_parameters,
                                                           abcdm_parameters], 0).reset_index(drop=True)
-                
+
             self.params_all = np.array(self.wm_abcdm_parameters)
             self.params_wm = [spotpy.parameter.List('a', list(self.params_all[:, 0])),
                               spotpy.parameter.List('b', list(self.params_all[:, 1])),
@@ -397,9 +397,9 @@ class CalibrateManaged:
             params = self.params_wm
         return spotpy.parameter.generate(params)
 
-    # model simulation set up			
+    # model simulation set up
     def simulation(self, pars):
-        """ABCD model and mrtm routing model : this function provides 
+        """ABCD model and mrtm routing model : this function provides
            simulated streamflow"""
         if self.set_calibrate == 0:
             he = AbcdManaged(pars=pars,
@@ -412,9 +412,9 @@ class CalibrateManaged:
                              spinup_steps=self.runoff_spinup,
                              method="dist")
             he.emulate()
-            self.rsim = he.rsim  # np.nansum(he.rsim * self.conversion, 1)   
+            self.rsim = he.rsim  # np.nansum(he.rsim * self.conversion, 1)
             return np.nansum(self.rsim * self.conversion, 1)[0:self.calib_length]
-			
+
         else:
             # runoff model
             he = AbcdManaged(pars=pars,
@@ -425,16 +425,16 @@ class CalibrateManaged:
                              basin_ids=self.basin_ids,
                              process_steps=self.nmonths,
                              spinup_steps=self.runoff_spinup,
-                             method="dist")					 
-            he.emulate()		
+                             method="dist")
+            he.emulate()
             # runoff
             self.runoff = he.rsim.T
 
             # load routing data
             beta_basin = np.copy(self.beta_local)
-            beta_basin[(self.Tr/pars[5]) > 3] = pars[5]                  
+            beta_basin[(self.Tr/pars[5]) > 3] = pars[5]
             # adjusted velocity
-            self.str_velocity = np.multiply(np.copy(self.Vst), beta_basin)	
+            self.str_velocity = np.multiply(np.copy(self.Vst), beta_basin)
             # Preallocation for variables to be returned from routing module
             self.Avg_ChFlow = np.zeros_like(self.precip)    # average channel flow m3/s
             self.ChStorage = np.zeros_like(self.precip)     # channel storage   m3
@@ -443,38 +443,38 @@ class CalibrateManaged:
             self.Qin_res_avg = np.zeros_like(self.precip)   # reservoir inflow  m3/s
             self.HP_Release = np.zeros([len(self.basin_ids), 1001, 12])  # 1001 = S discretization & 12 = nmonths/year
             # calibration data lenght
-            
-            self.routing_timestep = 3*3600  # seconds	
+
+            self.routing_timestep = 3*3600  # seconds
 
             for ii in range(4):
                 if ii <= 1:
-                    # ##################### WITHOUT RESERVOIR ###########################   
+                    # ##################### WITHOUT RESERVOIR ###########################
                     # Reservoir flag
                     self.res_flag = 0  # 1 if with reservoir, 0 without reservoir
-                    # routing time step               
-                    self.simulation_length = self.nmonths		      
+                    # routing time step
+                    self.simulation_length = self.nmonths
                     # place holders
                     self.Sini = np.zeros_like(self.mtifl_natural)  # initial reservoir storage at time t in m3
-                    self.res_prev = np.zeros_like(self.mtifl_natural)  # reservoir storage at beggining of the year in m3           
+                    self.res_prev = np.zeros_like(self.mtifl_natural)  # reservoir storage at beggining of the year in m3
                 else:
-                    # ##################### WITH RESERVOIR ###########################            
+                    # ##################### WITH RESERVOIR ###########################
                     # Reservoir flag
-                    self.res_flag = 1  # 1 if with reservoir, 0 without reservoir	                     
+                    self.res_flag = 1  # 1 if with reservoir, 0 without reservoir
                     # initial values
-            
+
                     self.mtifl_natural = np.mean(self.Avg_ChFlow, 1)
-                    if ii == 2:    
+                    if ii == 2:
                         # routing time step
                         self.simulation_length = self.routing_spinup
                         self.Sini = 0.5 * np.squeeze(self.cpa)  # initial reservoir storage at time t in m3
                         self.res_prev = 0.5 * np.squeeze(self.cpa)  # reservoir storage at beggining of the year in m3
-                    else: 
+                    else:
                         # routing time step
                         self.simulation_length = 240
                         Sini_read = np.load(self.dir_storage + str(self.basin_num) + '.npy')
                         self.Sini = np.squeeze(Sini_read)  # initial reservoir storage at time t in m3
                         self.res_prev = np.squeeze(Sini_read)  # reservoir storage at beggining of the year in m3
-                        
+
                     # Hydropower reservoirs operation policy
                     if len(self.HPindex) > 0:
                         dataflowD = self.Avg_ChFlow[self.Main_UseHPXP, :]
@@ -547,7 +547,7 @@ class CalibrateManaged:
 
     def objectivefunction(self, simulation, evaluation):
         """Calculates Model Performance.
-        Objective function to be minimized (if sceua /NSGAII is used) and 
+        Objective function to be minimized (if sceua /NSGAII is used) and
         maximized (all others)
         """
         # sceua requires minimization which will result in a negative KGE
@@ -639,24 +639,24 @@ class CalibrateManaged:
                 sampler.sample(self.repetitions)
         elif self.set_calibrate == 0:
             self.ModelPerformance + self.calib_algorithm_runoff + name_ext_flow
-            if self.calib_algorithm_runoff == 'sceua':	          
+            if self.calib_algorithm_runoff == 'sceua':
                 sampler = spotpy.algorithms.sceua(self,
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)  #,# parallel='mpi')                                          
+                                                  save_sim=False)  #,# parallel='mpi')
                 sampler.sample(self.repetitions)  # , ngs=10, kstop=10, peps=1e-7, pcento=1e-7)
 
-            elif self.calib_algorithm_runoff == 'NSGAII':	                 
-                n_pop = 10              
-                self.repetitions_nsgaii = int(self.repetitions / n_pop)         
+            elif self.calib_algorithm_runoff == 'NSGAII':
+                n_pop = 10
+                self.repetitions_nsgaii = int(self.repetitions / n_pop)
                 sampler = spotpy.algorithms.NSGAII(self,
                                                    dbname=dbname_dir,
                                                    dbformat="csv",
                                                    dbappend=False,
-                                                   save_sim=False)  # ,parallel='mpi')                                                
+                                                   save_sim=False)  # ,parallel='mpi')
                 sampler.sample(self.repetitions_nsgaii, n_obj=1, n_pop=n_pop)
-        
+
         # run with optimal parameters for final output
         optimal_params = bestParams_combination(self, dbname_dir + ".csv")
         self.calibration_run(optimal_params)
@@ -666,25 +666,25 @@ class CalibrateManaged:
             qsimulated = np.nansum(self.rsim * self.conversion, 1)
         else:
             qsimulated = self.simulation(x)
-        
+
         basin_ids_all = np.where(self.basin_ids == self.basin_num)[0]
-        if self.set_calibrate == -1:         
+        if self.set_calibrate == -1:
             # KGE of the calibration period
             kge_cal = spotpy.objectivefunctions.kge(self.bsn_obs[0:self.calib_length],
                                                     qsimulated[0:self.calib_length])
             # KGE of the validation period
-            kge_val = spotpy.objectivefunctions.kge(self.bsn_obs[self.calib_length + 1: self.data_length], 
+            kge_val = spotpy.objectivefunctions.kge(self.bsn_obs[self.calib_length + 1: self.data_length],
                                                     qsimulated[self.calib_length + 1:self.data_length])
             print("Calibration KGE: {}, Validation KGE: {}".format(kge_cal, kge_val))
             # output
             print("Simulated runoff output:" + self.out_dir + '/Simulated_Runoff_mm_per_month' + str(self.basin_num) +'.npy')
-            print("Simulated streamflow output:" + self.out_dir + '/Simulated_Streamflow_m3_per_sec' + str(self.basin_num) +'.npy')  
+            print("Simulated streamflow output:" + self.out_dir + '/Simulated_Streamflow_m3_per_sec' + str(self.basin_num) +'.npy')
             out_streamflow = self.Avg_ChFlow[basin_ids_all, :]
             out_runoff = self.runoff[basin_ids_all, :]
             np.save(self.out_dir + '/Simulated_Streamflow_m3_per_sec' + str(self.basin_num) +'.npy',out_streamflow)
             np.save(self.out_dir + '/Simulated_Runoff_mm_per_month' + str(self.basin_num) +'.npy',out_runoff)
 
-        elif self.set_calibrate == 0:        
+        elif self.set_calibrate == 0:
             # KGE of the calibration period
             kge_cal = spotpy.objectivefunctions.kge(self.bsn_obs_runoff[0:self.calib_length], qsimulated[0:self.calib_length])
             # KGE of the validation period
@@ -695,17 +695,17 @@ class CalibrateManaged:
             print("Simulated runoff output:" + self.out_dir + '/Simulated_Runoff_mm_per_month' + str(self.basin_num) + '.npy')
             out_runoff = self.rsim.transpose()
             np.save(self.out_dir + '/Simulated_Runoff_mm_per_month' + str(self.basin_num) + '.npy', out_runoff)
-                    
+
         else:
             # KGE of the calibration period
-            kge_cal = spotpy.objectivefunctions.kge(self.bsn_obs[0:self.calib_length], 
+            kge_cal = spotpy.objectivefunctions.kge(self.bsn_obs[0:self.calib_length],
                                                     qsimulated[0:self.calib_length])
             # KGE of the validation period
             kge_val = spotpy.objectivefunctions.kge(self.bsn_obs[self.calib_length + 1:self.data_length],
                                                     qsimulated[self.calib_length + 1:self.data_length])
             print("Calibration KGE: {}, Validation KGE: {}".format(kge_cal, kge_val))
             # output
-            print("Simulated runoff output:" + self.out_dir + '/Simulated_Runoff_mm_per_month' + str(self.basin_num) + '.npy')  
+            print("Simulated runoff output:" + self.out_dir + '/Simulated_Runoff_mm_per_month' + str(self.basin_num) + '.npy')
             print("Simulated streamflow output:" + self.out_dir + '/Simulated_Streamflow_m3_per_sec' + str(self.basin_num) + '.npy')
             out_streamflow = self.Avg_ChFlow[basin_ids_all, :]
             out_runoff = self.runoff[basin_ids_all, :]
@@ -790,7 +790,7 @@ def bestParams_combination(self, performance_file):
 def timeseries_coverter(data_array, start_yr, ending_yr):
     sdate = date(int(start_yr), 1, 1)
     edate = date(int(ending_yr), 12, 31)
-    data_ts = pd.DataFrame(data_array)   
+    data_ts = pd.DataFrame(data_array)
     data_ts.index = pd.date_range(start=sdate, end=edate, freq='M')
     mean_annual_data = np.squeeze(np.array(data_ts.resample('A').sum()))
 
