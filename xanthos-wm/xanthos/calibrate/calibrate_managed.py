@@ -714,7 +714,7 @@ class CalibrateManaged:
                                                  dbformat="csv",
                                                  dbappend=False,
                                                  save_sim=False,
-                                                 parallel='mpi' )
+                                                 parallel='mpi')
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'demcz':
@@ -723,7 +723,7 @@ class CalibrateManaged:
                                                   dbformat="csv",
                                                   dbappend=False,
                                                   save_sim=False,
-                                                  parallel='mpi' )
+                                                  parallel='mpi')
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'dream':
@@ -732,7 +732,7 @@ class CalibrateManaged:
                                                   dbformat="csv",
                                                   dbappend=False,
                                                   save_sim=False,
-                                                  parallel='mpi' )
+                                                  parallel='mpi')
                 sampler.sample(self.repetitions)
             elif self.calib_algorithm_streamflow == 'abc':
                 sampler = spotpy.algorithms.abc(self,
@@ -740,7 +740,7 @@ class CalibrateManaged:
                                                 dbformat="csv",
                                                 dbappend=False,
                                                 save_sim=False,
-                                                parallel='mpi' )
+                                                parallel='mpi')
                 sampler.sample(self.repetitions)
         elif self.set_calibrate == 0:
             name_ext_runoff = '_Runoff_ObjF_monthlyKGE'
