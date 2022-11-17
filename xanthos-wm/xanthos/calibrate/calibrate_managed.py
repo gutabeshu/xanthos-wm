@@ -693,8 +693,8 @@ class CalibrateManaged:
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  # , parallel='mpi')
+                                                  save_sim=False,
+                                                  parallel='mpi')
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'NSGAII':
@@ -704,8 +704,8 @@ class CalibrateManaged:
                                                    dbname=dbname_dir,
                                                    dbformat="csv",
                                                    dbappend=False,
-                                                   save_sim=False)
-                                                   # , parallel='mpi')
+                                                   save_sim=False,
+                                                   parallel='mpi')
                 sampler.sample(repetitions_nsgaii, n_obj=1, n_pop=n_pop)
 
             elif self.calib_algorithm_streamflow == 'mcmc':
@@ -713,8 +713,8 @@ class CalibrateManaged:
                                                  dbname=dbname_dir,
                                                  dbformat="csv",
                                                  dbappend=False,
-                                                 save_sim=False)
-                                                 # , parallel='mpi' )
+                                                 save_sim=False,
+                                                 parallel='mpi' )
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'demcz':
@@ -722,8 +722,8 @@ class CalibrateManaged:
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  # , parallel='mpi' )
+                                                  save_sim=False,
+                                                  parallel='mpi' )
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'dream':
@@ -731,16 +731,16 @@ class CalibrateManaged:
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  # , parallel='mpi' )
+                                                  save_sim=False,
+                                                  parallel='mpi' )
                 sampler.sample(self.repetitions)
             elif self.calib_algorithm_streamflow == 'abc':
                 sampler = spotpy.algorithms.abc(self,
                                                 dbname=dbname_dir,
                                                 dbformat="csv",
                                                 dbappend=False,
-                                                save_sim=False)
-                                                # , parallel='mpi' )
+                                                save_sim=False,
+                                                parallel='mpi' )
                 sampler.sample(self.repetitions)
         elif self.set_calibrate == 0:
             name_ext_runoff = '_Runoff_ObjF_monthlyKGE'
@@ -752,7 +752,8 @@ class CalibrateManaged:
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)  #,# parallel='mpi')
+                                                  save_sim=False,
+                                                  parallel='mpi')
                 sampler.sample(self.repetitions)  # , ngs=10, kstop=10, peps=1e-7, pcento=1e-7)
 
             elif self.calib_algorithm_runoff == 'NSGAII':
@@ -762,8 +763,8 @@ class CalibrateManaged:
                                                    dbname=dbname_dir,
                                                    dbformat="csv",
                                                    dbappend=False,
-                                                   save_sim=False)
-                                                   # ,parallel='mpi')
+                                                   save_sim=False,
+                                                   parallel='mpi')
                 sampler.sample(self.repetitions_nsgaii, n_obj=1, n_pop=n_pop)
 
         # run with optimal parameters for final output
