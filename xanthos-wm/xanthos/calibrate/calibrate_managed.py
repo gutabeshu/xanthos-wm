@@ -146,7 +146,6 @@ class CalibrateManaged:
             self.hist_channel_storage_varname = config_obj.ChStorageVarName
 
         self.basin_num = basin_num
-        print(self.basin_num)
         self.basin_ids = basin_ids
         self.basin_areas = basin_areas
         self.precip = precip
@@ -252,6 +251,7 @@ class CalibrateManaged:
         self.bsn_areas = self.basin_areas[self.basin_idx]
         self.bsn_PET = self.pet[self.basin_idx]
         self.bsn_P = self.precip[self.basin_idx]
+        self.bsn_TMIN = self.tmin[self.basin_idx]
         # initial soil moisture
         self.bsn_SM = self.SM[self.basin_idx]
 
@@ -259,14 +259,8 @@ class CalibrateManaged:
         # if not provided, the snow components
         # of the model is effectively removed, so remove the model parameter
         # if no tmin provided, just ensure it is larger than the rain threshold
-        self.nosnow = self.tmin is None
-        if self.nosnow:
-            self.bsn_TMIN = None
-            self.tminx = None
-        else:
-            self.bsn_TMIN = self.tmin[self.basin_idx]
-            self.tminx = self.tmin
-
+        if np.min(self.bsn_TMIN) > 0:
+            self.nosnow = None
         # Unit conversion for runoff case
         # if self.obs_unit == "km3_per_mth":
         self.conversion = self.bsn_areas * 1e-6
@@ -346,7 +340,7 @@ class CalibrateManaged:
 
         # calibration result output path
         self.ModelPerformance = os.path.join(
-                                  self.out_dir,
+                                  self.out_dir, "calibration_outputs",
                                   f"Basin_{self.basin_num}_calibration_")
 
         # set up parameters  for first stage or runoff
@@ -765,8 +759,8 @@ class CalibrateManaged:
                                                   save_sim=False,
                                                   # parallel='mpi'
                                                   )
-                sampler.sample(self.repetitions, ngs=500,
-                               kstop=500, peps=1e-1, pcento=1e-1)
+                sampler.sample(self.repetitions, ngs=50,
+                               kstop=50, peps=1e-1, pcento=1e-1)
 
             elif self.calib_algorithm_runoff == 'NSGAII':
                 n_pop = 10
@@ -837,7 +831,7 @@ class CalibrateManaged:
 
         elif self.set_calibrate == 0:
             self.runoff_outdir = os.path.join(
-                                  self.out_dir,"Simulated_outputs",
+                                  self.out_dir, "simulation_outputs",
                                   f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
             # KGE of the calibration period
             kge_cal = spotpy.objectivefunctions.kge(
@@ -857,6 +851,12 @@ class CalibrateManaged:
             np.save(self.runoff_outdir, out_runoff)
 
         else:
+            self.runoff_outdir = os.path.join(
+                                  self.out_dir,
+                                  f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
+            self.flow_outdir = os.path.join(
+                                  self.out_dir,
+                                  f"Basin_{self.basin_num}_Simulated_AVCH_m3persec.npy")
             # KGE of the calibration period
             kge_cal = spotpy.objectivefunctions.kge(
                        self.bsn_obs[0:self.calib_length],
@@ -865,26 +865,14 @@ class CalibrateManaged:
             kge_val = spotpy.objectivefunctions.kge(
                       self.bsn_obs[self.calib_length + 1:self.data_length],
                       qsimulated[self.calib_length + 1:self.data_length])
-            print(
-                "Calibration KGE: {}, Validation KGE: {}".
-                format(kge_cal, kge_val))
+            print("Calibration KGE:{},Validation KGE:{}".format(kge_cal, kge_val))
             # output
-            print(
-                "Simulated runoff output:" +
-                self.out_dir + '/Simulated_Runoff_mmpermonth' +
-                str(self.basin_num) + '.npy')
-            print(
-                "Simulated streamflow output:" +
-                self.out_dir + '/Simulated_AVCH_m3persec' +
-                str(self.basin_num) + '.npy')
+            print(self.runoff_outdir)
+            print(self.flow_outdir)
             out_streamflow = self.Avg_ChFlow[basin_ids_all, :]
             out_runoff = self.runoff[basin_ids_all, :]
-            np.save(self.out_dir +
-                    '/Simulated_AVCH_m3persec' +
-                    str(self.basin_num) + '.npy', out_streamflow)
-            np.save(self.out_dir +
-                    '/Simulated_Runoff_mmpermonth' +
-                    str(self.basin_num) + '.npy', out_runoff)
+            np.save(self.flow_outdir, out_streamflow)
+            np.save(self.runoff_outdir, out_runoff)
 
 
 def process_basin(basin_num, config_obj, calibration_data, pet, router_function=None):
