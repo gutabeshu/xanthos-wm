@@ -15,8 +15,8 @@ class DataCalibrationManaged(DataReference):
                  capacity_file=None,
                  hp_release_file=None,
                  water_consumption_file=None,
-                 instream_flow_natural_file=None,
-                 initial_channel_storage_natural_file=None,
+                 instream_flownat_file=None,
+                 initial_chs_nat_file=None,
                  sm_file=None,
                  mtif_natural_file=None,
                  maxtif_natural_file=None,
@@ -92,6 +92,8 @@ class DataCalibrationManaged(DataReference):
             self.water_consumption = Xanthos_wm.Total_Water_Consumption.values.transpose()
             self.total_demand_mmpermonth = Xanthos_wm.Total_Water_Demand.values.transpose()
             # grdc stations
-            self.grdc_coord_index_file = pd.read_csv(self.config_obj.grdc_coord_index_file)
+            self.grdc_coord_index_file = pd.read_csv(
+                                         self.config_obj.grdc_coord_index_file)
             # optimal params
-            self.optimal_parameters = self.load_data(self.config_obj.optimal_parameters_file)
+            self.optimal_parameters = self.load_data(
+                                      self.config_obj.optimal_parameters_file)

@@ -11,7 +11,6 @@ Copyright (c) 2018, Battelle Memorial Institute
 import os
 import sys
 import warnings
-import logging
 from datetime import date
 from itertools import product
 
@@ -46,7 +45,7 @@ class CalibrateManaged:
     # WM parameters bound
     LBwm1 = 0.1
     UBwm1 = 10.0
-    PARAMETER_NAMES = ['a', 'c', 'b', 'd', 'm', 'beta', 'alpha'] # d lower bound 1e-2
+    PARAMETER_NAMES = ['a', 'c', 'b', 'd', 'm', 'beta', 'alpha']
 
     def __init__(self,
                  basin_num,
@@ -68,8 +67,8 @@ class CalibrateManaged:
                  capacity_file=None,
                  hp_release_file=None,
                  water_consumption_file=None,
-                 instream_flow_natural_file=None,
-                 initial_channel_storage_natural_file=None,
+                 instream_flownat_file=None,
+                 initial_chs_nat_file=None,
                  sm_file=None,
                  mtif_natural_file=None,
                  maxtif_natural_file=None,
@@ -167,8 +166,8 @@ class CalibrateManaged:
                             capacity_file=capacity_file,
                             hp_release_file=hp_release_file,
                             water_consumption_file=water_consumption_file,
-                            instream_flow_natural_file=instream_flow_natural_file,
-                            initial_channel_storage_natural_file=initial_channel_storage_natural_file,
+                            instream_flownat_file=instream_flownat_file,
+                            initial_chs_nat_file=initial_chs_nat_file,
                             sm_file=sm_file,
                             mtif_natural_file=mtif_natural_file,
                             maxtif_natural_file=maxtif_natural_file,
@@ -346,7 +345,7 @@ class CalibrateManaged:
         # set up parameters  for first stage or runoff
         # set number of parameter combinations with latin hyper cube sampling
         self.l_bounds = [CalibrateManaged.LB, CalibrateManaged.LB,
-                         CalibrateManaged.LB, 1e-2, # CalibrateManaged.LB,
+                         CalibrateManaged.LB, 1e-2,  # CalibrateManaged.LB,
                          CalibrateManaged.LB]
         self.u_bounds = [CalibrateManaged.UB, 8 - CalibrateManaged.LB,
                          CalibrateManaged.UB, CalibrateManaged.UB,
@@ -437,7 +436,7 @@ class CalibrateManaged:
         elif (self.set_calibrate == -1):
             self.parametrs_abcdmba = self.calib_data.optimal_parameters
             self.params_wm = np.squeeze(self.parametrs_abcdmba[np.where(
-                             self.parametrs_abcdmba[:,7]==self.basin_num
+                             self.parametrs_abcdmba[:, 7] == self.basin_num
                                )[0], 0:7])
     # parameter set up
 
@@ -689,15 +688,16 @@ class CalibrateManaged:
             elif self.set_calibrate == -1:
                 # 19 is combination of routing coeffitient and
                 # the optimal runoff parameter set
-                self.repetitions = 5#len(self.wmp_beta)
+                self.repetitions = len(self.wmp_beta)
             # algorithm
             if self.calib_algorithm_streamflow == 'sceua':
                 sampler = spotpy.algorithms.sceua(self,
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  #, parallel='mpi')
+                                                  save_sim=False,
+                                                  # parallel='mpi'
+                                                  )
                 sampler.sample(self.repetitions, ngs=50,
                                kstop=50, peps=1e-2, pcento=1e-2)
 
@@ -708,8 +708,9 @@ class CalibrateManaged:
                                                    dbname=dbname_dir,
                                                    dbformat="csv",
                                                    dbappend=False,
-                                                   save_sim=False)
-                                                   # , parallel='mpi')
+                                                   save_sim=False,
+                                                   # parallel='mpi'
+                                                   )
                 sampler.sample(repetitions_nsgaii, n_obj=1, n_pop=n_pop)
 
             elif self.calib_algorithm_streamflow == 'mcmc':
@@ -717,8 +718,9 @@ class CalibrateManaged:
                                                  dbname=dbname_dir,
                                                  dbformat="csv",
                                                  dbappend=False,
-                                                 save_sim=False)
-                                                 #, parallel='mpi' )
+                                                 save_sim=False,
+                                                 # parallel='mpi'
+                                                 )
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'demcz':
@@ -726,8 +728,9 @@ class CalibrateManaged:
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  #, parallel='mpi' )
+                                                  save_sim=False,
+                                                  # parallel='mpi'
+                                                  )
                 sampler.sample(self.repetitions)
 
             elif self.calib_algorithm_streamflow == 'dream':
@@ -735,16 +738,18 @@ class CalibrateManaged:
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  #, parallel='mpi' )
+                                                  save_sim=False,
+                                                  # parallel='mpi'
+                                                  )
                 sampler.sample(self.repetitions)
             elif self.calib_algorithm_streamflow == 'abc':
                 sampler = spotpy.algorithms.abc(self,
                                                 dbname=dbname_dir,
                                                 dbformat="csv",
                                                 dbappend=False,
-                                                save_sim=False)
-                                                #, parallel='mpi' )
+                                                save_sim=False,
+                                                # parallel='mpi'
+                                                )
                 sampler.sample(self.repetitions)
         elif self.set_calibrate == 0:
             name_ext_runoff = '_Runoff_ObjF_monthlyKGE'
@@ -769,16 +774,18 @@ class CalibrateManaged:
                                                    dbname=dbname_dir,
                                                    dbformat="csv",
                                                    dbappend=False,
-                                                   save_sim=False)
-                                                   #, parallel='mpi')
+                                                   save_sim=False,
+                                                   # parallel='mpi'
+                                                   )
                 sampler.sample(self.repetitions_nsgaii, n_obj=1, n_pop=n_pop)
             elif self.calib_algorithm_runoff == 'dream':
                 sampler = spotpy.algorithms.demcz(self,
                                                   dbname=dbname_dir,
                                                   dbformat="csv",
                                                   dbappend=False,
-                                                  save_sim=False)
-                                                  #, parallel='mpi' )
+                                                  save_sim=False,
+                                                  # ,parallel='mpi'
+                                                  )
                 sampler.sample(self.repetitions)
 
         # run with optimal parameters for final output
@@ -831,8 +838,8 @@ class CalibrateManaged:
 
         elif self.set_calibrate == 0:
             self.runoff_outdir = os.path.join(
-                                  self.out_dir, "simulation_outputs",
-                                  f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
+                    self.out_dir, "simulation_outputs",
+                    f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
             # KGE of the calibration period
             kge_cal = spotpy.objectivefunctions.kge(
                       self.bsn_obs_runoff[0:self.calib_length],
@@ -852,11 +859,11 @@ class CalibrateManaged:
 
         else:
             self.runoff_outdir = os.path.join(
-                                  self.out_dir,
-                                  f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
+                    self.out_dir,
+                    f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
             self.flow_outdir = os.path.join(
-                                  self.out_dir,
-                                  f"Basin_{self.basin_num}_Simulated_AVCH_m3persec.npy")
+                        self.out_dir,
+                        f"Basin_{self.basin_num}_Simulated_AVCH_m3persec.npy")
             # KGE of the calibration period
             kge_cal = spotpy.objectivefunctions.kge(
                        self.bsn_obs[0:self.calib_length],
@@ -865,7 +872,8 @@ class CalibrateManaged:
             kge_val = spotpy.objectivefunctions.kge(
                       self.bsn_obs[self.calib_length + 1:self.data_length],
                       qsimulated[self.calib_length + 1:self.data_length])
-            print("Calibration KGE:{},Validation KGE:{}".format(kge_cal, kge_val))
+            print("Calibration KGE:{}".format(kge_cal))
+            print("Validation KGE:{}".format(kge_val))
             # output
             print(self.runoff_outdir)
             print(self.flow_outdir)
@@ -875,7 +883,8 @@ class CalibrateManaged:
             np.save(self.runoff_outdir, out_runoff)
 
 
-def process_basin(basin_num, config_obj, calibration_data, pet, router_function=None):
+def process_basin(basin_num, config_obj,
+                  calibration_data, pet, router_function=None):
     """Process single basin."""
 
     # load ABCD runoff module data
