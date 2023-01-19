@@ -188,7 +188,6 @@ class Components(DataUtils):
         @:return dtr_pet:               Daily temperature range for the target month
         """
         if self.s.pet_module == 'hargreaves':
-
             self.mth_solar_dec = np.copy(self.solar_dec[nm])
             self.mth_dr = np.copy(self.dr[nm])
             self.mth_days = np.copy(self.yr_imth_dys[nm, 2])

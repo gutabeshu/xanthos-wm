@@ -112,8 +112,8 @@ class ConfigReader:
         self.ncell = 67420
         self.ngridrow = 360
         self.ngridcol = 720
-        self.n_basins = int(p.get('n_basins',  235))
-        self.basin_num = int(p.get('basin_num', 0))
+        self.n_basins = int(p.get('n_basins'))
+        self.basins_toRun = p['basin_list']
         self.HistFlag = p.get('HistFlag', 'True')
         self.StartYear = int(p['StartYear'])
         self.EndYear = int(p['EndYear'])
@@ -420,7 +420,7 @@ class ConfigReader:
             # new files for water management
             self.grdc_coord_index_file = os.path.join(self.rt_model_dir, rt_mod['grdc_coord_index_file'])
             self.Xanthos_wm_file = os.path.join(self.rt_model_dir, rt_mod['Xanthos_wm_file'])
-
+            self.optimal_parameters_file = os.path.join(self.rt_model_dir, rt_mod['optimal_parameters'])
 
             try:
                 self.routing_spinup = int(rt_mod['routing_spinup'])
@@ -532,7 +532,7 @@ class ConfigReader:
         valid_runoff = ('km3_per_mth', 'mm_per_mth')
         valid_streamflow = ('m3_per_sec')
 
-        if set_calib <= 0:
+        if set_calib == 0:
 
             if unit not in valid_runoff:
                 raise ValidationException("Calibration data input units '{}' for runoff data "
@@ -541,7 +541,7 @@ class ConfigReader:
             else:
                 return unit
 
-        elif set_calib == 1:
+        elif set_calib == -1 | set_calib == 1:
 
             if unit not in valid_streamflow:
                 raise ValidationException("Calibration data input units '{}' for streamflow data "

@@ -174,8 +174,8 @@ def calibrate_basin(start_year,
                                           dbformat="csv",
                                           dbappend=False,
                                           save_sim=False)  # ,parallel='mpi')
-        sampler.sample(repetitions)
-
+        sampler.sample(repetitions, ngs=500,
+                       kstop=500, peps=1e-1, pcento=1e-1)
     elif calib_algorithm == 'NSGAII':
         n_pop = 10
         repetitions_nsgaii = int(repetitions / n_pop)

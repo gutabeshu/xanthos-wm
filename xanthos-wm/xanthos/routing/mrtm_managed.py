@@ -639,22 +639,6 @@ def reservoir_water_balance(Qin, Qout, Sin, cpa,
     return Rfinal,  Sfinal
 
 
-def grdc_stations_upstreamgrids(upid, gridID):
-    operate = [gridID]
-    results = [gridID]
-    while not (len(operate) == 0):
-        grd_us = operate[0]
-        immediate_us = upid[grd_us, 0:upid[grd_us, 8]]
-        for ii in range(len(immediate_us)):
-            results.append(immediate_us[ii]-1)
-            operate.append(immediate_us[ii]-1)
-        operate.remove(operate[0])
-
-    contributing_grids = results
-
-    return contributing_grids
-
-
 def release_functions(res, dataflow, res_data, alpha):
     # factors
     secs_in_month = 2629800  # number of seconds in an average month
@@ -797,3 +781,19 @@ def HPrelease(QQ, r_policy_all, q_max, capp, Sinn, alpha):
         QQcomputed[ii] = (R_rec + Spill)/cumecs_to_Mm3permonth
 
     return QQcomputed
+
+
+def grdc_stations_upstreamgrids(upid, gridID):
+    operate = [gridID]
+    results = [gridID]
+    while not (len(operate) == 0):
+        grd_us = operate[0]
+        immediate_us = upid[grd_us, 0:upid[grd_us, 8]]
+        for ii in range(len(immediate_us)):
+            results.append(immediate_us[ii]-1)
+            operate.append(immediate_us[ii]-1)
+        operate.remove(operate[0])
+
+    contributing_grids = results
+
+    return contributing_grids

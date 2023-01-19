@@ -10,6 +10,7 @@ class DataCalibrationManaged(DataReference):
     def __init__(self,
                  config_obj=None,
                  cal_observed=None,
+                 optimal_parameters_file=None,
                  purpose_file=None,
                  capacity_file=None,
                  hp_release_file=None,
@@ -92,3 +93,5 @@ class DataCalibrationManaged(DataReference):
             self.total_demand_mmpermonth = Xanthos_wm.Total_Water_Demand.values.transpose()
             # grdc stations
             self.grdc_coord_index_file = pd.read_csv(self.config_obj.grdc_coord_index_file)
+            # optimal params
+            self.optimal_parameters = self.load_data(self.config_obj.optimal_parameters_file)
