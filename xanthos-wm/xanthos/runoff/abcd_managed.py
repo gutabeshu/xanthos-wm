@@ -38,7 +38,8 @@ class AbcdManaged:
     @:return m      Float from 0-1
     """
 
-    def __init__(self, pars, soil_water_initial,  pet, precip, tmin, basin_ids, process_steps, spinup_steps, method='dist'):
+    def __init__(self, pars, soil_water_initial,  pet, precip, tmin, basin_ids,
+                 process_steps, spinup_steps, method='dist'):
 
         # are we running with the snow component?
         self.nosnow = tmin is None
@@ -80,7 +81,7 @@ class AbcdManaged:
 
         # values [initial runoff, soil moisture storage, groundwater storage
         self.inv = np.array([20, 100, 500])
-        self.soil_water_storage0 = soil_water_initial #self.inv[1]
+        self.soil_water_storage0 = soil_water_initial
         self.groundwater_storage0 = self.inv[2]
 
         # populate param arrays
@@ -95,7 +96,7 @@ class AbcdManaged:
         self.rain = None
         self.snow = None
 
-		
+
         self.SN0 = 0
         self.TRAIN = 2.5
         self.TSNOW = 0.6
@@ -212,7 +213,7 @@ class AbcdManaged:
         self.soil_water_storage[i, :] = self.et_op[i, :] * np.exp(-pet[i, :].real / self.b)
 
         # get the difference between available water and ET opportunity
-        awet = (self.water_avail[i, :] - self.et_op[i, :]) 
+        awet = (self.water_avail[i, :] - self.et_op[i, :])
         c_x_awet = self.c * awet
 
         # groundwater storage
@@ -226,7 +227,7 @@ class AbcdManaged:
         self.actual_et[i, :] = np.maximum(0, self.actual_et[i, :])
         self.actual_et[i, :] = np.minimum(pet[i, :].real, self.actual_et[i, :])
         self.soil_water_storage[i, :] = self.et_op[i, :] - self.actual_et[i, :]
-        self.rsim[i, :] = np.round((awet - c_x_awet)+ self.d * self.groundwater_storage[i, :], 3) 
+        self.rsim[i, :] = np.round((awet - c_x_awet)+ self.d * self.groundwater_storage[i, :], 3)
 
 
 

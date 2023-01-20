@@ -358,7 +358,6 @@ class CalibrateManaged:
         self.sample_params_set = np.squeeze(qmc.scale(
                                  sample_params,
                                  self.l_bounds, self.u_bounds))
-
         self.params_ro_lhc = [spotpy.parameter.List('a',
                               list(self.sample_params_set[:, 0])),
                               spotpy.parameter.List('b',
