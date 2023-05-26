@@ -54,6 +54,8 @@ class OutWriter:
         # array for converting basin values from mm to km3
         self.conversion_mm_km3 = grid_areas / 1e6
 
+        self.basin_ids = settings.basin_ids
+
         # output options
         self.proj_name = settings.ProjectName
         self.out_folder = settings.OutputFolder
@@ -62,6 +64,7 @@ class OutWriter:
         self.out_unit_str = settings.OutputUnitStr
         self.output_in_year = settings.OutputInYear
         self.ChStorageNameStr = settings.OutputNameStr
+        self.calib_out_dir = settings.calib_out_dir
 
         year_range = range(settings.StartYear, settings.EndYear + 1)
         if self.output_in_year:
@@ -263,3 +266,35 @@ class OutWriter:
         agg_df.set_index('id', inplace=True)
 
         return agg_df
+
+    def write_global_runoff_and_flow(self):
+        path_in = os.path.join(self.calib_out_dir,
+                               'Basin_runoff_mmpermonth_Basin' + str(1) + '.npy')
+        data_pre = np.load(path_in)
+        Basin_runoff_mmpermonth = np.zeros([len(self.basin_ids),
+                                            data_pre.shape[1]])
+        for ii in range(235):
+            basin_num = ii + 1
+            indx = np.where(self.basin_ids == basin_num)[0]
+            data = os.path.join(self.calib_out_dir,
+                                'Basin_runoff_mmpermonth_Basin' +
+                                str(basin_num) + '.npy')
+            runoff = np.load(data)
+            # runoff mm
+            Basin_runoff_mmpermonth[indx, :] = runoff
+
+        # runoff km3
+        mm_to_km3 = np.tile(self.conversion_mm_km3,
+                            (runoff.shape[1], 1)).transpose()
+        Basin_runoff_km3permonth = np.multiply(runoff, mm_to_km3)
+
+        # save file
+        # runoff
+        path_out = os.path.join(self.calib_out_dir, 'Basin_runoff_mmpermonth_' +
+                                self.proj_name + '.npy')
+        pd.DataFrame.to_csv(Basin_runoff_mmpermonth, path_out, index=False)
+        # flow
+        path_out = os.path.join(self.calib_out_dir, 'Avg_ChFlow_m3persec_' +
+                                self.proj_name + '.npy')
+        pd.DataFrame.to_csv(Basin_runoff_km3permonth, path_out, index=False)
+

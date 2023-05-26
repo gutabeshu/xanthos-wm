@@ -95,8 +95,6 @@ class AbcdManaged:
         self.rsim = None
         self.rain = None
         self.snow = None
-
-
         self.SN0 = 0
         self.TRAIN = 2.5
         self.TSNOW = 0.6

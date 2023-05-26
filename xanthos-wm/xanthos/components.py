@@ -662,6 +662,8 @@ class Components(DataUtils):
         # TODO: check data reference
         output_writer.write_aggregates(self.data_reference, self.q, self.s.AggregateRunoffBasin, self.s.AggregateRunoffCountry,
                                        self.s.AggregateRunoffGCAMRegion)
+        # ourput global runoff and average channel flow
+        output_writer.write_global_runoff_and_flow(self)
 
         logging.info("---Output finished: %s seconds ---" % (time.time() - t0))
 

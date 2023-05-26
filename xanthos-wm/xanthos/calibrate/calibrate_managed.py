@@ -506,7 +506,7 @@ class CalibrateManaged:
             # routing time step
             self.routing_timestep = 3*3600  # seconds
 
-            for ii in range(1):
+            for ii in range(3):
                 if ii <= 1:
                     # ##################### WITHOUT RESERVOIR ################
                     # Reservoir flag

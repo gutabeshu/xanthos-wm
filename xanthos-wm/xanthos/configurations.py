@@ -117,7 +117,8 @@ class ConfigRunner:
                      runoff_num_steps=self.runoff_timestep,
                      routing_num_steps=self.routing_timestep,
                      notify='Simulation')
-
+        ##
+        # q from wm
         # accessible water module
         c.accessible_water()
 
