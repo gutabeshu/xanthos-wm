@@ -22,8 +22,6 @@ import numpy as np
 import scipy.sparse as sparse
 from datetime import date
 from xanthos.reservoirs import WaterManagement
-from xanthos.lake.lake_water_balance import LakeWaterBalance
-from xanthos.lake.lake_evaporation import penman_lake_evaporation
 
 
 def streamrouting(L, S0, F0, ChV, q, area, nday, dt, UM, UP, Sini_byr, wdirr,
