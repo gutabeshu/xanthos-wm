@@ -183,7 +183,7 @@ def calibrate_basin(start_year,
                                            dbname=dbname_dir + name_ext,
                                            dbformat="csv",
                                            dbappend=False,
-                                           save_sim=False, parallel='mpi')
+                                           save_sim=False)  # ,parallel='mpi')
         sampler.sample(repetitions_nsgaii, n_obj=1, n_pop=n_pop)
 
     elif calib_algorithm == 'mcmc':
@@ -191,7 +191,7 @@ def calibrate_basin(start_year,
                                          dbname=dbname_dir + name_ext,
                                          dbformat="csv",
                                          dbappend=False,
-                                         save_sim=False, parallel='mpi')
+                                         save_sim=False)  # ,parallel='mpi' )
         sampler.sample(repetitions)
 
     elif calib_algorithm == 'demcz':
@@ -199,7 +199,7 @@ def calibrate_basin(start_year,
                                           dbname_dir + name_ext,
                                           dbformat="csv",
                                           dbappend=False,
-                                          save_sim=False, parallel='mpi')
+                                          save_sim=False)  # , parallel='mpi' )
         sampler.sample(repetitions)
 
     elif calib_algorithm == 'dream':
@@ -207,14 +207,14 @@ def calibrate_basin(start_year,
                                           dbname=dbname_dir + name_ext,
                                           dbformat="csv",
                                           dbappend=False,
-                                          save_sim=False, parallel='mpi')
+                                          save_sim=False)  # ,parallel='mpi' )
         sampler.sample(repetitions)
     elif calib_algorithm == 'abc':
         sampler = spotpy.algorithms.abc(runoff_model_spot_setup,
                                         dbname=dbname_dir + name_ext,
                                         dbformat="csv",
                                         dbappend=False,
-                                        save_sim=False, parallel='mpi')
+                                        save_sim=False)  # ,parallel='mpi' )
         sampler.sample(repetitions)
 
     # re-read the output file
