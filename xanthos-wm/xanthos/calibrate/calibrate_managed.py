@@ -20,8 +20,7 @@ import numpy as np
 import pandas as pd
 import spotpy
 import xanthos.calibrate.calibrate_abcdm_firststage as calibrate_runoff
-#import xanthos.routing.mrtm_managed as routing_mod
-import xanthos.routing.mrtm_managed_lake as routing_mod
+import xanthos.routing.mrtm_managed as routing_mod
 import xanthos.utils.general as helper
 import xanthos.utils.math as umth
 from scipy.stats import qmc
