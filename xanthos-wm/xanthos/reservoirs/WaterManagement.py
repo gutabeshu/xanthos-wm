@@ -169,147 +169,219 @@ class Reservoir:
 
         return rflood_final
 
-    # Hydropower
+# Hydropower
+class ReservoirTools:
+    """
+    Computes storage characteristics: levels, adjusting capacity_live based on each discretization.
+
+    Parameters:
+    - max_depth: Maximum depth of the reservoir.
+    - head: Hydraulic head, m.
+    - surface_area: Surface area of the reservoir at full capacity, km2.
+    - capacity: Total reservoir storage capacity in Mm³.
+    - capacity_live: Initial live capacity of the reservoir before adjustment, Mm³.
+    - V: Array of water volume from 1000 reservoir discretizations, Mm³.
+
+    Returns:
+    - yh_: Computed water level in the reservoir, in m.
+    - y_const: Constant derived from head and yh_, in m.
+    - capacity_live_adjusted: Array of adjusted usable water volumes for each discretization, Mm³.
+    """    
     @staticmethod
-    def compute_storage_level(max_depth, head, surface_area,
-                              capac, cap_live, volume):
-        """
-        Computes storage level for hydropower reservoirs.
-        """
-        if np.isnan(max_depth):
-            cp_ = (np.sqrt(2) / 3) * (
-                (surface_area * 1e6) ** (3/2)) / (capac * 1e6)
-            yh_ = (6 * volume / (cp_ ** 2)) ** (1 / 3)
-            y_const = head - yh_
-            if y_const < 0:
-                cap_live = np.nanmin([
-                    cap_live,
-                    capac - (((-y_const) ** 3) * (cp_ ** 2 / 6 / 1e6))
-                ])
+    def calculate_c(surface_area, capacity, max_depth=None):
+        if max_depth is None:
+            c = np.sqrt(2) / 3 * (surface_area * 10 ** 6) ** (3/2) / (capacity * 10 ** 6)
         else:
-            cp_ = 2 * capac / (max_depth * surface_area)
-            yh_ = max_depth * (volume / (capac * 1e6)) ** (cp_ / 2)
-            y_const = head - max_depth
-            if y_const < 0:
-                cap_live = np.nanmin([
-                    cap_live,
-                    capac - ((-y_const / max_depth) ** (2 / cp_) * capac)
-                ])
+            c = 2 * capacity / (max_depth * surface_area)
+        return c    
 
-        return yh_, y_const, cap_live
+    @staticmethod        
+    def get_level(c, V, max_depth, capacity):
+        if max_depth is None:
+            y = (6 * V / (c ** 2)) ** (1 / 3)
+        else:
+            y = max_depth * (V / (capacity * 10 ** 6)) ** (c / 2)
+        return y    
+    
+    @staticmethod   
+    def adjust_capacity(capacity_live, capacity, yconst, c, max_depth):
+        if yconst < 0:
+            if max_depth is None or np.isnan(max_depth):
+                capacity_live = min(capacity_live, capacity - (-yconst) ** 3 * c ** 2 / 6 / 10 ** 6)
+            else:
+                capacity_live = min(capacity_live, capacity - (-yconst / max_depth) ** (2 / c) * capacity)
+        return capacity_live
 
-    # Hydropower reservoirs policy
-    def compute_release_policies(self, reservoir_id, dataflow, reservoir_data):
-        """
-        Computes release policies for reservoirs.
-        """
-        # Constants
-        secs_in_month = 2629800  # Number of seconds in an average month
-        cumecs_to_mm3permonth = 2.6298  # m3/s to Mm3/month
-        specific_weight_water = 9810  # Specific weight of water (N/m^3)
-        num_months = 12  # Months in a year
 
-        # Reservoir specific data
-        inflow = dataflow[reservoir_id, :]
-        cap = self.alpha * reservoir_data["CAP"][reservoir_id]  # MCM
-        cap_live = self.alpha * reservoir_data["CAP"][reservoir_id]  # MCM
-        installed_capacity = reservoir_data["ECAP"][reservoir_id]
-        q_max = reservoir_data[
-                        "FLOW_M3S"][reservoir_id] * cumecs_to_mm3permonth
-        efficiency = 0.9
-        surface_area = reservoir_data["AREA"][reservoir_id]
-        max_depth = reservoir_data["DAM_HGT"][reservoir_id]
-        head = max_depth
+    @staticmethod
+    def compute_storage_characteristics(max_depth, head, surface_area, capacity, capacity_live, V):
+        c = ReservoirPolicy.calculate_c(surface_area, capacity, max_depth)
+        
+        V_m3 = V * 1e6  # Convert V from Mm³ to m³
+        yh_ = ReservoirPolicy.get_level(c, V_m3, max_depth, capacity)
+        y_const = head - yh_
+        
+        capacity_live_adjusted = np.zeros_like(V)
+        for i in range(V.shape[0]):
+            for j in range(V.shape[1]):
+                for k in range(V.shape[2]):
+                    capacity_live_adjusted[i, j, k] = ReservoirPolicy.adjust_capacity(capacity_live, capacity, y_const[i,j,k], c, max_depth)
 
-        if np.isnan(head):
-            head = installed_capacity / (
-                efficiency * specific_weight_water * (q_max / secs_in_month))
 
-        if np.isnan(q_max):
-            q_max = (installed_capacity / (
-                    efficiency * specific_weight_water * head)) * secs_in_month
+        return yh_, y_const
 
-        # Setup for stochastic dynamic programming
-        r_disc = 10
-        s_disc = 1000
-        s_states = np.linspace(0, cap, s_disc + 1)
-        r_disc_x = np.linspace(0, q_max, r_disc + 1)
-        inflow_mm3 = inflow * cumecs_to_mm3permonth
 
-        # Array setup
-        start_date = date(1971, 1, 1)  # Start date for simulation "M/YYYY"
-        inflow_dataframe = pd.DataFrame(inflow_mm3)
-        inflow_by_month = inflow_dataframe.set_index(
-                pd.period_range(start_date,
-                                periods=len(inflow_dataframe), freq="M"))
+# Reservoir water balance
+def reservoir_water_balance(Qin, Qout, Sin, cpa,
+                            mtifl, alpha, dt,  resrvoirs_indx):
+    """Re-adjusts release for environmental flow (if necessary) and
+          Computes the storage level after release
+          for all types of reservoirs"""
+    # inputs
+    Qin_ = Qin[resrvoirs_indx]
+    Qout_ = Qout[resrvoirs_indx]
+    Sin_ = Sin[resrvoirs_indx]
+    cpa_ = cpa[resrvoirs_indx]
+    mtifl_ = mtifl[resrvoirs_indx]
 
-        # Quantiles for inflow classes
-        q_disc = np.array((0, 0.2375, 0.4750, 0.7125, 0.95, 1))
-        q_probs = np.diff(q_disc)  # Probabilities for each q class
-        q_class_med = inflow_by_month.groupby(
-                        inflow_by_month.index.month).quantile(
-                            q_disc[1:6] - (q_probs / 2))
+    # final storage and release initialization
+    Nx = len(resrvoirs_indx)
+    # environmental flow
+    diff_rt = Qout_ - (mtifl_ * 0.1)
+    indx_rt = np.where(diff_rt < 0)[0]
+    Qout_[indx_rt] = 0.1 * mtifl_[indx_rt]
 
-        # Setup arrays to be populated
-        shell_array = np.zeros(shape=(
-                        len(q_probs), len(s_states), len(r_disc_x)))
-        rev_to_go = np.zeros(len(s_states))
-        r_policy_test = np.zeros([len(s_states), num_months])
+    # storage
+    dsdt_resv = (Qin_ - Qout_) * dt
+    Stemp = Sin_ + dsdt_resv
 
-        # Work backwards through months of year (12 -> 1) and
-        # repeat till policy converges
-        while True:
-            r_policy = np.zeros([len(s_states), num_months])
+    Rfinal = np.zeros([Nx, ])    # final release
+    Sfinal = np.zeros([Nx, ])    # final storage
+    # condition a : storage > capacity
+    Sa = (Stemp > (alpha * cpa_))
+    if Sa.any():
+        Sfinal[Sa] = alpha * cpa_[Sa]
+        Rspill = (Stemp[Sa] - (alpha * cpa_[Sa])) / dt
+        Rfinal[Sa] = Qout_[Sa] + Rspill
 
-            for _t in range(num_months, 0, -1):
-                # Compute constrained releases and desired releases
-                r_cstr = shell_array + np.array(
-                            q_class_med.loc[_t, slice(None)][0]
-                        )[:, None][:, None] + shell_array + s_states[:, None]
-                r_star = shell_array + r_disc_x
+    # condition b : storage <= 0
+    Sb = (Stemp < 0)
+    if Sb.any():
+        Sfinal[Sb] = 0
+        Rfinal[Sb] = (Sin_[Sb]/dt) + Qin_[Sb]
 
-                # Compute next stage storage
-                s_nxt_stage = r_cstr - r_star
-                s_nxt_stage[s_nxt_stage < 0] = 0
-                s_nxt_stage[s_nxt_stage > cap] = cap
+    # condition c : 25% capacity < S < capacity
+    Sc = ((Stemp > 0) & (Stemp <= alpha*cpa_))
+    if Sc.any():
+        Sfinal[Sc] = Stemp[Sc]
+        Rfinal[Sc] = Qout_[Sc]
 
-                # Compute storage level and head for all storage states
-                yh_, y_const, cap_live = self.compute_storage_level(
-                                max_depth, head, surface_area, cap, cap_live,
-                                (s_nxt_stage + s_states[:, None]) * 1e6 / 2)
-                h_arr = yh_ + y_const
+    return Rfinal,  Sfinal
 
-                # Compute revenue taken as head * release
-                rev_arr = np.multiply(h_arr, r_star)
 
-                # Compute implied storage state
-                implied_s_state = np.around(
-                                  1 + (s_nxt_stage / cap) * (
-                                    len(s_states) - 1)).astype(np.int64)
-                # Compute expected maximum revenue
-                rev_to_go_arr = rev_to_go[implied_s_state - 1]
-                max_rev_arr = rev_arr + rev_to_go_arr
-                max_rev_arr_weighted = max_rev_arr * np.array(
-                                                q_probs)[:, None][:, None]
-                # Negative revenue to reject non-feasible release
-                max_rev_arr_weighted[r_star > r_cstr] = float("-inf")
+def release_functions(res, dataflow, res_data, alpha):
+    # factors
+    secs_in_month = 2629800  # number of seconds in an average month
+    cumecs_to_Mm3permonth = 2.6298  # m3/s to Mm3/month
+    sww = 9810  # specific weight of water (N/m^3)
+    # hours_in_year = 8766  # number of hours in a year
+    # mwh_to_exajoule = 3.6 * (10 ** -9)  # megawatts to exajoules
+    mths = 12  # months in year
+    # inflow
+    QQ = dataflow[res, :]
+    # reserv
+    # #######################
+    cap = alpha*res_data["CAP"][res]  # MCM
+    cap_live = alpha*res_data["CAP"][res]  # MCM
+    installed_cap = res_data["ECAP"][res]
+    q_max = res_data["FLOW_M3S"][res] * cumecs_to_Mm3permonth
+    efficiency = 0.9
+    surface_area = res_data["AREA"][res]
+    max_depth = res_data["DAM_HGT"][res]
+    head = installed_cap / (efficiency * sww * (q_max / secs_in_month))
+    if np.isnan(q_max):
+        qmax = (installed_cap / (efficiency * sww * head)) * secs_in_month
+    ######################
+    # storage discretized to 1000 segments for stoch. dyn. prog.
+    r_disc = 10
+    s_disc = 1000
+    s_states = np.linspace(0, cap, s_disc+1)
+    r_disc_x = np.linspace(0, q_max, r_disc+1)
+    m = mths
+    q_Mm3 = QQ*cumecs_to_Mm3permonth
+    inflow = pd.DataFrame(q_Mm3)
+    start_date = date(1971, 1, 1)  # Get start date for simulation "M/YYYY"
+    Q = pd.DataFrame({'Q': inflow}, index=pd.date_range(start=start_date, periods=len(inflow), freq='ME'))         
+    # array setup
+    start_date = date(1971, 1, 1)  # Get start date for simulation "M/YYYY"
+    Q_month_mat = inflow.set_index(pd.period_range(
+                  start_date,
+                  periods=len(inflow),
+                  freq="M"))
+    Q_month_mat = Q['Q'].groupby([Q.index.year, Q.index.month]).mean().unstack()
+    Q_disc = np.array((0, 0.2375, 0.4750, 0.7125, 0.95, 1))
+    Q_probs = np.diff(Q_disc)  # probabilities for each q class
+    # Calculating adjusted probabilities
+    adjusted_probs = Q_disc[:-1] + (Q_probs / 2)
+    # Calculate the quantiles for each column at the adjusted probabilities
+    Q_class_med = Q_month_mat.quantile(adjusted_probs, axis=0, interpolation='midpoint')
+          
+    # set up empty arrays to be populated
+    shell_array = np.zeros(shape=(len(Q_probs), len(s_states), len(r_disc_x)))
+    rev_to_go = np.zeros(len(s_states))
+    # Bellman = np.zeros([len(s_states), m])
+    r_policy_test = np.zeros([len(s_states), m])
+    # work backwards through months of year (12 -> 1) and
+    # repeat till policy converges
 
-                # Update revenue to go
-                max_rev_expected = max_rev_arr_weighted.sum(axis=0)
-                rev_to_go = max_rev_expected.max(1)
+    while True:
+        r_policy = np.zeros([len(s_states), num_months])
+        for t in range(num_months, 0, -1):
+            # constrained releases
+            r_cstr = shell_array + q_class_med[t].values[np.newaxis, np.newaxis, :] + s_states[:, np.newaxis, np.newaxis]
+            # desired releases
+            r_star = shell_array + r_disc_x[np.newaxis, :, np.newaxis] 
+            #r_star[:, 1:(r_disc + 1), :][r_star[:, 1:(r_disc + 1), :] > r_cstr[:, 1:(r_disc + 1), :]] = np.NaN
 
-                # Update policy
-                r_policy[:, _t - 1] = np.argmax(max_rev_expected, 1)
+            s_nxt_stage = r_cstr - r_star
+            s_nxt_stage[s_nxt_stage < 0] = 0
+            s_nxt_stage[s_nxt_stage > capacity] = capacity
+            s_avg = (s_nxt_stage + s_states[:, np.newaxis, np.newaxis]) /2
 
-            # Test for policy convergence
-            pol_test = float(sum(sum(r_policy == r_policy_test))
-                             ) / (num_months * len(s_states))
-            r_policy_test = r_policy  # Re-assign policy test for next loop
+            # Compute storage level and head for all storage states
+            yh_, y_const = ReservoirTools.compute_storage_characteristics(
+                                        max_depth, 
+                                        head, 
+                                        surface_area, 
+                                        capacity, 
+                                        capacity,
+                                        s_avg)
+            h_arr = yh_ + y_const
+            # ^^get head for all storage states for revenue calculation
+            # revenue taken as head * release
+            rev_arr = np.multiply(h_arr, r_star)
+            implied_s_state = np.around(
+                                1 + (s_nxt_stage / capacity) *
+                                (len(s_states) - 1)).astype(np.int64)
+            # ^^implied storage is the storage implied by each
+            # release decision and inflow combination
+            rev_to_go_arr = rev_to_go[implied_s_state - 1]
+            max_rev_arr = rev_arr + rev_to_go_arr
+            max_rev_arr_weighted = max_rev_arr * q_probs[np.newaxis, np.newaxis, :]
+            # negative rev to reject non-feasible release
+            max_rev_arr_weighted[r_star > r_cstr] = float("-inf")
+            max_rev_expected = max_rev_arr_weighted.sum(axis=2) 
+            rev_to_go = max_rev_expected.max(1)
+            r_policy[:, t - 1] = np.argmax(max_rev_expected, 1)
+        # Test for policy convergence
+        pol_test = float(sum(sum(r_policy == r_policy_test))
+                            ) / (num_months * len(s_states))
+        r_policy_test = r_policy  # re-assign policy test for next loop test
+        #print(pol_test)
+        if pol_test >= tol:
+            break
 
-            if pol_test >= 0.99:
-                break
-
-        return r_policy
+    return r_policy
 
     # Hydropower reservoir Release
     def compute_hydropower_res_release(self, inflow, release_policies,
