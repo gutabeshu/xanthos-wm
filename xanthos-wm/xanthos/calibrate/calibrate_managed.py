@@ -17,8 +17,6 @@ from itertools import product
 import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
-import spotpy
-import xanthos.calibrate.calibrate_abcdm_firststage as calibrate_runoff
 import xanthos.routing.mrtm_managed as routing_mod
 import xanthos.utils.general as helper
 import xanthos.utils.math as umth
@@ -30,6 +28,33 @@ from xanthos.data_reader.data_reference import DataReference
 from xanthos.runoff.abcd_managed import AbcdManaged
 
 warnings.filterwarnings('ignore')
+
+try:
+    import spotpy
+except ModuleNotFoundError:
+    spotpy = None
+
+
+def require_spotpy():
+    if spotpy is None:
+        raise ModuleNotFoundError(
+            "spotpy is required for calibration. Install requirements or use set_calibrate = -1 "
+            "to run with existing optimal parameters."
+        )
+
+
+def kge(evaluation, simulation):
+    evaluation = np.asarray(evaluation, dtype=float)
+    simulation = np.asarray(simulation, dtype=float)
+    valid = np.isfinite(evaluation) & np.isfinite(simulation)
+    evaluation = evaluation[valid]
+    simulation = simulation[valid]
+    if evaluation.size == 0:
+        return np.nan
+    r = np.corrcoef(evaluation, simulation)[0, 1]
+    alpha = np.std(simulation) / np.std(evaluation)
+    beta = np.mean(simulation) / np.mean(evaluation)
+    return 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
 
 
 class CalibrateManaged:
@@ -350,27 +375,33 @@ class CalibrateManaged:
         self.u_bounds = [CalibrateManaged.UB, 8 - CalibrateManaged.LB,
                          CalibrateManaged.UB, CalibrateManaged.UB,
                          CalibrateManaged.UB]
-        # nsample = 10000 #number of sample per parameter
-        # self.sample_params_set = np.zeros([nsample, len(self.l_bounds)])
-        # for ii in range(len(self.l_bounds)):
-        sampler_lhc = qmc.LatinHypercube(d=5, seed=42)
-        sample_params = sampler_lhc.random(n=self.repetitions)
-        self.sample_params_set = np.squeeze(qmc.scale(
-                                 sample_params,
-                                 self.l_bounds, self.u_bounds))
-        self.params_ro_lhc = [spotpy.parameter.List('a',
-                              list(self.sample_params_set[:, 0])),
-                              spotpy.parameter.List('b',
-                              list(self.sample_params_set[:, 1])),
-                              spotpy.parameter.List('c',
-                              list(self.sample_params_set[:, 2])),
-                              spotpy.parameter.List('d',
-                              list(self.sample_params_set[:, 3])),
-                              spotpy.parameter.List('m',
-                              list(self.sample_params_set[:, 4])),
-                              ]
+        if self.set_calibrate != -1:
+            require_spotpy()
+            # nsample = 10000 #number of sample per parameter
+            # self.sample_params_set = np.zeros([nsample, len(self.l_bounds)])
+            # for ii in range(len(self.l_bounds)):
+            sampler_lhc = qmc.LatinHypercube(d=5, seed=42)
+            sample_params = sampler_lhc.random(n=self.repetitions)
+            self.sample_params_set = np.squeeze(qmc.scale(
+                                     sample_params,
+                                     self.l_bounds, self.u_bounds))
+            self.params_ro_lhc = [spotpy.parameter.List('a',
+                                  list(self.sample_params_set[:, 0])),
+                                  spotpy.parameter.List('b',
+                                  list(self.sample_params_set[:, 1])),
+                                  spotpy.parameter.List('c',
+                                  list(self.sample_params_set[:, 2])),
+                                  spotpy.parameter.List('d',
+                                  list(self.sample_params_set[:, 3])),
+                                  spotpy.parameter.List('m',
+                                  list(self.sample_params_set[:, 4])),
+                                  ]
+        else:
+            self.params_ro_lhc = []
         # two stage calibration case
         if (self.set_calibrate == 1):
+            import xanthos.calibrate.calibrate_abcdm_firststage as calibrate_runoff
+
             print("\tStarting The First Stage Parameter Selection :" +
                   "Runoff Parameters Selection")
             self.ro_params_selected = calibrate_runoff.calibrate_basin(
@@ -506,8 +537,13 @@ class CalibrateManaged:
             # routing time step
             self.routing_timestep = 3*3600  # seconds
 
-            for ii in range(1):
-                if ii <= 1:
+            routing_passes = (0, 1) if self.set_calibrate == -1 else (0,)
+            natural_flow = None
+            for ii in routing_passes:
+                self.chs_prev = np.squeeze(self.chs_ini).copy()
+                self.instream_flow = np.squeeze(self.Initial_instream_flow).copy()
+
+                if ii == 0:
                     # ##################### WITHOUT RESERVOIR ################
                     # Reservoir flag
                     # 1 if with reservoir, 0 without reservoir
@@ -525,28 +561,24 @@ class CalibrateManaged:
                     self.res_flag = 1
                     # initial values
 
-                    self.mtifl_natural = np.mean(self.Avg_ChFlow, 1)
-                    if ii == 2:
-                        # routing time step
-                        self.simulation_length = self.routing_spinup
-                        # initial reservoir storage at time t in m3
-                        self.Sini = 0.5 * np.squeeze(self.cpa)
-                        # reservoir storage at beggining of the year in m3
-                        self.res_prev = 0.5 * np.squeeze(self.cpa)
-                    else:
-                        # routing time step
-                        self.simulation_length = 240
-                        Sini_read = np.load(
-                                     self.dir_storage +
-                                     str(self.basin_num) + '.npy')
-                        # initial reservoir storage at time t in m3
-                        self.Sini = np.squeeze(Sini_read)
-                        # reservoir storage at beggining of the year in m3
-                        self.res_prev = np.squeeze(Sini_read)
+                    natural_flow = np.copy(self.Avg_ChFlow)
+                    self.mtifl_natural = np.nanmean(natural_flow, 1)
+                    # routing time step
+                    self.simulation_length = self.nmonths
+                    # initial reservoir storage at time t in m3
+                    self.Sini = 0.5 * np.squeeze(self.cpa)
+                    # reservoir storage at beggining of the year in m3
+                    self.res_prev = 0.5 * np.squeeze(self.cpa)
+
+                    self.Avg_ChFlow = np.zeros_like(self.precip)
+                    self.ChStorage = np.zeros_like(self.precip)
+                    self.ResStorage = np.zeros_like(self.precip)
+                    self.Qin_res_avg = np.zeros_like(self.precip)
+                    self.Qout_res_avg = np.zeros_like(self.precip)
 
                     # Hydropower reservoirs operation policy
                     if len(self.HPindex) > 0:
-                        dataflowD = self.Avg_ChFlow[self.Main_UseHPXP, :]
+                        dataflowD = natural_flow[self.Main_UseHPXP, :]
                         # 1001 = S discretization & 12 = nmonths/year
                         self.HP_Release = np.zeros([
                             dataflowD.shape[0], 1001, 12])
@@ -590,8 +622,8 @@ class CalibrateManaged:
                      self.instream_flow,
                      self.Qin_Channel_avg,
                      self.Qout_channel_avg,
-                     self.Qin_res_avg,
-                     self.Qout_res_avg,
+                     self.Qin_res_avg[:, nm],
+                     self.Qout_res_avg[:, nm],
                      self.ResStorage[:, nm]) = sr
 
                     # update data
@@ -600,12 +632,9 @@ class CalibrateManaged:
                     if np.mod(nm, 12) == 11:
                         self.Sini = self.ResStorage[:, nm]
 
-                    # update data channels storage with reservoir effect
-                    self.DsDt_channel = (
-                                        (self.Qin_res_avg - self.Qout_res_avg)
-                                        * self.yr_imth_dys[nm, 2] * 24 * 3600)
-                    self.chs_prev = self.ChStorage[:, nm] + self.DsDt_channel
-                    self.chs_prev[self.chs_prev < 0] = 0
+                    # reservoir release is coupled to downstream channel storage
+                    # inside streamrouting at each routing substep
+                    self.chs_prev = np.copy(self.ChStorage[:, nm])
 
                 # storage out if first run
                 if ii == 2:
@@ -634,6 +663,7 @@ class CalibrateManaged:
         Objective function to be minimized (if sceua /NSGAII is used) and
         maximized (all others)
         """
+        require_spotpy()
         # sceua requires minimization which will result in a negative KGE
         method = self.calib_algorithm_streamflow
         if (method == 'sceua') | (method == 'NSGAII'):
@@ -674,6 +704,10 @@ class CalibrateManaged:
         """
         # parallel ='seq' # Runs everthing in sequential mode
         np.random.seed(2000)  # Makes the results reproduceable
+
+        if self.set_calibrate == -1:
+            self.calibration_run(self.params_wm)
+            return
 
         if (self.set_calibrate == -1) | (self.set_calibrate == 1):
             name_ext_flow = '_Flow_ObjF_monthlyKGE'
@@ -806,11 +840,11 @@ class CalibrateManaged:
         # sim
         if self.set_calibrate == -1:
             # KGE of the calibration period
-            kge_cal = spotpy.objectivefunctions.kge(
+            kge_cal = kge(
                       self.bsn_obs[0:self.calib_length],
                       qsimulated[0:self.calib_length])
             # KGE of the validation period
-            kge_val = spotpy.objectivefunctions.kge(
+            kge_val = kge(
                        self.bsn_obs[self.calib_length + 1: self.data_length],
                        qsimulated[self.calib_length + 1:self.data_length])
             print(
@@ -840,11 +874,11 @@ class CalibrateManaged:
                     self.out_dir, "simulation_outputs",
                     f"Basin_{self.basin_num}_Simulated_Runoff_mmpermonth.npy")
             # KGE of the calibration period
-            kge_cal = spotpy.objectivefunctions.kge(
+            kge_cal = kge(
                       self.bsn_obs_runoff[0:self.calib_length],
                       qsimulated[0:self.calib_length])
             # KGE of the validation period
-            kge_val = spotpy.objectivefunctions.kge(
+            kge_val = kge(
                       self.bsn_obs_runoff[
                         self.calib_length + 1:self.data_length],
                       qsimulated[self.calib_length + 1:self.data_length])
@@ -864,11 +898,11 @@ class CalibrateManaged:
                         self.out_dir,
                         f"Basin_{self.basin_num}_Simulated_AVCH_m3persec.npy")
             # KGE of the calibration period
-            kge_cal = spotpy.objectivefunctions.kge(
+            kge_cal = kge(
                        self.bsn_obs[0:self.calib_length],
                        qsimulated[0:self.calib_length])
             # KGE of the validation period
-            kge_val = spotpy.objectivefunctions.kge(
+            kge_val = kge(
                       self.bsn_obs[self.calib_length + 1:self.data_length],
                       qsimulated[self.calib_length + 1:self.data_length])
             print("Calibration KGE:{}".format(kge_cal))

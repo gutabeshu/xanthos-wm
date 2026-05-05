@@ -2,6 +2,7 @@
 Example script demonstrating how to call and run Xanthos.
 """
 import os
+import sys
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -22,7 +23,10 @@ def run(ini):
 if __name__ == "__main__":
 
     # full path to parameterized config file
-    ini = os.path.join('/xanthos-wm/pm_abcd_mrtm_managed.ini')
+    ini = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'pm_abcd_mrtm_managed.ini'
+    )
 
     # run the model
     xth = run(ini)

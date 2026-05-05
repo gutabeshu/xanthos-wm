@@ -200,6 +200,16 @@ def streamrouting(L, S0, F0, ChV, q, area, nday, dt, UM, UP, Sini_byr, wdirr,
                                                         mtifl, alpha, dt,
                                                         cond_all)
 
+            # Pass regulated reservoir release to downstream channel storage.
+            # Qout is channel outflow into the local reservoir/outlet; Qout_resv
+            # is the flux that should be received by downstream grids.
+            release_delta = Qout_resv - Qout
+            if np.any(release_delta):
+                downstream_delta = UP.dot(release_delta)
+                S += downstream_delta * dt
+                S[S < 0] = 0
+                Qin_Channel_avg += downstream_delta
+
             # final
             F = Qout_resv.copy()
             Favg += F
@@ -574,10 +584,12 @@ def GetLevel(max_depth, head, surface_area, capac, cap_live, V):
         c = (np.sqrt(2) / 3) * ((surface_area * 1e6) ** (3/2)) / (capac * 1e6)
         y = (6 * V / (c**2)) ** (1 / 3)
         yconst = head - y
-        if (yconst < 0):
+        yconst_neg = np.asarray(yconst)[np.asarray(yconst) < 0]
+        if yconst_neg.size > 0:
             cap_live = np.nanmin([
                        cap_live,
-                       capac - (((-yconst) ** 3) * (c ** 2 / 6 / 1e6))])
+                       np.nanmin(capac - (
+                        ((-yconst_neg) ** 3) * (c ** 2 / 6 / 1e6)))])
     else:
         c = 2 * capac / (max_depth * surface_area)
         y = max_depth * (V / (capac * 1e6))**(c / 2)
@@ -639,6 +651,22 @@ def reservoir_water_balance(Qin, Qout, Sin, cpa,
     return Rfinal,  Sfinal
 
 
+def _hydropower_effective_head(installed_cap, max_turbine_flow, dam_height,
+                               efficiency=0.9, specific_weight_water=9810):
+    """Estimate effective hydropower head, preferring turbine-capacity data."""
+    if (np.isfinite(installed_cap) and installed_cap > 0 and
+            np.isfinite(max_turbine_flow) and max_turbine_flow > 0):
+        head = ((installed_cap * 1e6) /
+                (specific_weight_water * max_turbine_flow * efficiency))
+        if np.isfinite(head) and head > 0:
+            return head
+
+    if np.isfinite(dam_height) and dam_height > 0:
+        return dam_height
+
+    return 0.0
+
+
 def release_functions(res, dataflow, res_data, alpha):
     # factors
     secs_in_month = 2629800  # number of seconds in an average month
@@ -654,19 +682,24 @@ def release_functions(res, dataflow, res_data, alpha):
     cap = alpha*res_data["CAP"][res]  # MCM
     cap_live = alpha*res_data["CAP"][res]  # MCM
     installed_cap = res_data["ECAP"][res]
-    q_max = res_data["FLOW_M3S"][res] * cumecs_to_Mm3permonth
     efficiency = 0.9
+    max_turbine_flow = res_data["FLOW_M3S"][res]
+    q_max = max_turbine_flow * cumecs_to_Mm3permonth
     surface_area = res_data["AREA"][res]
     max_depth = res_data["DAM_HGT"][res]
-    head = max_depth
-    if np.isnan(head):
-        head = installed_cap / (efficiency * sww * (q_max / secs_in_month))
-    if np.isnan(q_max):
-        qmax = (installed_cap / (efficiency * sww * head)) * secs_in_month
+    head = _hydropower_effective_head(installed_cap, max_turbine_flow,
+                                      max_depth, efficiency, sww)
+    if not (np.isfinite(max_depth) and max_depth > 0):
+        max_depth = np.nan
+    if not (np.isfinite(q_max) and q_max > 0):
+        q_max = 0.0
     ######################
     # storage discretized to 1000 segments for stoch. dyn. prog.
     r_disc = 10
     s_disc = 1000
+    max_iterations = 200
+    min_tolerance = 0.70
+    tol = 0.98
     s_states = np.linspace(0, cap, s_disc+1)
     r_disc_x = np.linspace(0, q_max, r_disc+1)
     m = mths
@@ -691,7 +724,9 @@ def release_functions(res, dataflow, res_data, alpha):
     # work backwards through months of year (12 -> 1) and
     # repeat till policy converges
 
-    while True:
+    r_policy = np.copy(r_policy_test)
+    pol_test = 0.0
+    for _ in range(max_iterations):
         r_policy = np.zeros([len(s_states), m])
         for t in range(m, 0, -1):
             # constrained releases
@@ -733,10 +768,15 @@ def release_functions(res, dataflow, res_data, alpha):
         pol_test = float(
                         sum(sum(
                             r_policy == r_policy_test))) / (m * len(s_states))
-        r_policy_test = r_policy  # re-assign policy test for next loop test
         # print(pol_test)
-        if pol_test >= 0.99:
+        if pol_test >= tol:
             break
+        r_policy_test = np.copy(r_policy)
+
+    if pol_test < min_tolerance:
+        # Keep the previous behavior of returning the best available policy,
+        # but avoid an unbounded loop if convergence is slow or degenerate.
+        r_policy = np.copy(r_policy_test)
 
     return r_policy
 
