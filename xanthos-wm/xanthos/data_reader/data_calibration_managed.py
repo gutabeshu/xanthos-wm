@@ -1,4 +1,5 @@
 import xarray
+import numpy as np
 import pandas as pd
 from xanthos.data_reader.data_reference import DataReference
 
@@ -65,7 +66,7 @@ class DataCalibrationManaged(DataReference):
             # use basin-level flow as target for calibration;
             # select only columns for basin number and runoff
             try:
-                if self.set_calibrate <= 0:
+                if self.set_calibrate == 0:
                     self.cal_obs = self.load_data(self.config_obj.cal_observed, 0)
                 else:
                     self.cal_obs = self.load_data(self.config_obj.cal_observed, 0)[:, [0, 3]]
@@ -75,25 +76,38 @@ class DataCalibrationManaged(DataReference):
 
             # load xanthos wm file
             Xanthos_wm = xarray.open_dataset(self.config_obj.Xanthos_wm_file)
+
+            def one_dim(name, default=0.0, keep_nan=False):
+                if name in Xanthos_wm:
+                    values = Xanthos_wm[name].values
+                    return values if keep_nan else np.nan_to_num(values)
+                return np.full(self.ncells, default, dtype=float)
+
+            def monthly(name):
+                return np.nan_to_num(Xanthos_wm[name].values.transpose())
+
             # xanthos
-            self.ini_channel_storage = Xanthos_wm.Main_Use.values
-            self.sm = Xanthos_wm.Initial_SoilMoisture.values
-            self.instream_flow_natural = Xanthos_wm.Main_Use.values
+            self.ini_channel_storage = one_dim('Initial_Channel_Storage_Natural')
+            self.sm = one_dim('Initial_SoilMoisture')
+            self.instream_flow_natural = one_dim('Initial_instream_flow_Natural')
             # general reserviors
-            self.purpose = Xanthos_wm.Main_Use.values
-            self.capacity = Xanthos_wm.Capacity.values
-            self.mtif_natural = Xanthos_wm.Main_Use.values
-            self.maxtif_natural = Xanthos_wm.Qmax_Turbine.values
+            self.purpose = one_dim('Main_Use')
+            self.capacity = one_dim('Capacity')
+            self.mtif_natural = one_dim('mtifl_natural')
+            self.maxtif_natural = one_dim('Qmax_Turbine')
             # hydropower reservoir
-            self.installed_cap = Xanthos_wm.ECAP.values
-            self.surface_area = Xanthos_wm.Surf_Area_SKM.values
-            self.max_depth = Xanthos_wm.Dam_HGT.values
+            self.installed_cap = one_dim('ECAP')
+            self.surface_area = one_dim('Surf_Area_SKM')
+            self.max_depth = one_dim('Dam_HGT', np.nan, keep_nan=True)
+            self.hp_release = Xanthos_wm['HP_Release'].values if 'HP_Release' in Xanthos_wm else None
             # water consumption and demand
-            self.water_consumption = Xanthos_wm.Total_Water_Consumption.values.transpose()
-            self.total_demand_mmpermonth = Xanthos_wm.Total_Water_Demand.values.transpose()
+            self.water_consumption = monthly('Total_Water_Consumption')
+            self.total_demand_mmpermonth = monthly('Total_Water_Demand')
+            self.total_demand_cumecs = self.total_demand_mmpermonth
             # grdc stations
             self.grdc_coord_index_file = pd.read_csv(
                                          self.config_obj.grdc_coord_index_file)
             # optimal params
-            self.optimal_parameters = self.load_data(
-                                      self.config_obj.optimal_parameters_file)
+            if self.config_obj.optimal_parameters_file is not None:
+                self.optimal_parameters = self.load_data(
+                                          self.config_obj.optimal_parameters_file)

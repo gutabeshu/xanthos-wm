@@ -24,13 +24,30 @@ class ValidationException(Exception):
 class ConfigReader:
     """Read the Xanthos configuration .ini file."""
 
+    @staticmethod
+    def resolve_path(base_dir, path_value):
+        """Resolve config paths that may be absolute, cwd-relative, or module-relative."""
+        if path_value is None:
+            return None
+        if os.path.isabs(path_value):
+            return path_value
+        if os.path.exists(path_value):
+            return os.path.abspath(path_value)
+        return os.path.join(base_dir, path_value)
+
     def __init__(self, ini):
         """
         Load values from configuration file.
 
         :param ini:     path to the config file
         """
+        if not os.path.isfile(ini):
+            raise ValidationException("Configuration file does not exist: {}".format(ini))
+
         c = ConfigObj(ini)
+
+        if 'Project' not in c:
+            raise ValidationException("Configuration file is missing required [Project] section: {}".format(ini))
 
         p = c['Project']
 
@@ -113,7 +130,7 @@ class ConfigReader:
         self.ngridrow = 360
         self.ngridcol = 720
         self.n_basins = int(p.get('n_basins'))
-        self.basins_toRun = p['basin_list']
+        self.basins_toRun = p.get('basin_list', p.get('basin_num'))
         self.HistFlag = p.get('HistFlag', 'True')
         self.StartYear = int(p['StartYear'])
         self.EndYear = int(p['EndYear'])
@@ -413,14 +430,18 @@ class ConfigReader:
             self.rt_model_dir = os.path.join(self.RoutingDir, rt_mod['routing_dir'])
 
             # load built-in files [ channel velocity, flow distance, flow direction ]
-            self.strm_veloc = os.path.join(self.rt_model_dir, rt_mod['channel_velocity'])
-            self.flow_distance = os.path.join(self.rt_model_dir, rt_mod['flow_distance'])
-            self.flow_direction = os.path.join(self.rt_model_dir, rt_mod['flow_direction'])
+            self.strm_veloc = self.resolve_path(self.rt_model_dir, rt_mod['channel_velocity'])
+            self.flow_distance = self.resolve_path(self.rt_model_dir, rt_mod['flow_distance'])
+            self.flow_direction = self.resolve_path(self.rt_model_dir, rt_mod['flow_direction'])
 
-            # new files for water management
-            self.grdc_coord_index_file = os.path.join(self.rt_model_dir, rt_mod['grdc_coord_index_file'])
-            self.Xanthos_wm_file = os.path.join(self.rt_model_dir, rt_mod['Xanthos_wm_file'])
-            self.optimal_parameters_file = os.path.join(self.rt_model_dir, rt_mod['optimal_parameters'])
+            if self.routing_module == 'mrtm_managed':
+                # new files for water management
+                self.grdc_coord_index_file = self.resolve_path(self.rt_model_dir, rt_mod['grdc_coord_index_file'])
+                self.Xanthos_wm_file = self.resolve_path(self.rt_model_dir, rt_mod['Xanthos_wm_file'])
+                self.optimal_parameters_file = self.resolve_path(
+                    self.rt_model_dir,
+                    rt_mod.get('optimal_parameters')
+                )
 
             try:
                 self.routing_spinup = int(rt_mod['routing_spinup'])
@@ -530,7 +551,7 @@ class ConfigReader:
     def ck_obs_unit(set_calib, unit):
         """Check the defined unit of the calibration data input."""
         valid_runoff = ('km3_per_mth', 'mm_per_mth')
-        valid_streamflow = ('m3_per_sec')
+        valid_streamflow = ('m3_per_sec',)
 
         if set_calib == 0:
 
@@ -541,7 +562,7 @@ class ConfigReader:
             else:
                 return unit
 
-        elif set_calib == -1 | set_calib == 1:
+        elif set_calib in (-1, 1):
 
             if unit not in valid_streamflow:
                 raise ValidationException("Calibration data input units '{}' for streamflow data "
